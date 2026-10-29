@@ -43,7 +43,7 @@ button { cursor: pointer; }
 
 /* ---------- estructura ---------- */
 #app { min-height: 100%; padding-bottom: calc(var(--bottom) + 150px); }
-.cabecera { background: var(--carbon); color: var(--claro); padding: calc(var(--top) + 18px) 22px 26px; }
+.cabecera { position: sticky; top: 0; z-index: 4; background: var(--carbon); color: var(--claro); padding: calc(var(--top) + 18px) 22px 26px; }
 .barra { display: flex; align-items: center; justify-content: space-between; }
 .marca { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 700; font-size: 20px; }
 .marca img { width: 34px; height: 34px; border-radius: 9px; }
@@ -99,7 +99,7 @@ button { cursor: pointer; }
 .wa { display: inline-flex; align-items: center; gap: 6px; border-radius: 12px; padding: 10px 14px; background: #1B7A4A; color: #fff; text-decoration: none; font-weight: 700; font-size: 15px; }
 
 /* ---------- navegación y botón ---------- */
-nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--papel); border-top: 1px solid var(--linea); display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 4px calc(var(--bottom) + 6px); z-index: 5; }
+nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--papel); border-top: 1px solid var(--linea); display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 2px calc(var(--bottom) + 6px); z-index: 5; }
 nav button { background: transparent; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; font-size: 12px; font-weight: 600; color: var(--gris); }
 nav button svg { width: 24px; height: 24px; }
 nav button[aria-current="page"] { color: var(--rosa-texto); }
@@ -118,11 +118,15 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
 .importe { font-family: var(--serif); font-size: 44px; border: 0; background: transparent; width: 100%; padding: 4px 0 10px; border-bottom: 2px solid var(--linea); margin-bottom: 14px; }
 .importe:focus { outline: none; border-color: var(--rosa); }
 .rejilla { display: grid; gap: 12px; }
-.rejilla .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rejilla .dos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.campo input, .campo select { min-width: 0; min-height: 50px; -webkit-appearance: none; appearance: none; }
+.campo select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%234A4F57' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+.campo input[type=date] { display: block; text-align: left; }
+.campo input[type=date]::-webkit-date-and-time-value { text-align: left; }
 .hoja .boton { width: 100%; margin-top: 18px; }
 .aviso { position: fixed; left: 20px; right: 20px; bottom: calc(var(--bottom) + 160px); background: var(--carbon); color: var(--claro); border-radius: 14px; padding: 14px 16px; font-weight: 600; z-index: 20; text-align: center; }
 .demo { background: var(--rosa-claro); color: var(--carbon); text-align: center; font-size: 13px; font-weight: 700; padding: calc(var(--top) + 6px) 10px 6px; }
-.demo + .cabecera { padding-top: 14px; }
+.demo:not(.oculto) + .cabecera { padding-top: 14px; }
 
 /* ---------- pantallas grandes: la app se muestra como celular centrado ---------- */
 @media (min-width: 640px) {
@@ -135,6 +139,39 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
   .fondo { justify-content: center; }
   .hoja { max-width: 460px; }
 }
+
+/* ---------- v2: cobros, ficha de cliente, borrar ---------- */
+.cobrar { background: var(--carbon); color: var(--claro); border-radius: 20px; padding: 18px; margin-top: 30px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; width: 100%; text-align: left; }
+.cobrar b { display: block; font-family: var(--serif); font-size: 30px; font-weight: 400; margin-top: 2px; }
+.cobrar span { color: var(--gris-claro); font-size: 14px; }
+.cobrar em { font-style: normal; color: var(--rosa-claro); font-weight: 700; font-size: 15px; white-space: nowrap; }
+.cotizacion { background: var(--papel); border: 1px solid var(--linea); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
+.cotizacion .cab { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.cotizacion h4 { margin: 0; font-family: var(--serif); font-size: 20px; font-weight: 400; }
+.cotizacion .folio { font-size: 13px; color: var(--gris); white-space: nowrap; }
+.barra-pago { height: 8px; background: #ECE7DE; border-radius: 4px; margin: 12px 0 6px; overflow: hidden; }
+.barra-pago i { display: block; height: 100%; background: var(--rosa); border-radius: 4px; }
+.cifras { display: flex; justify-content: space-between; font-size: 14px; color: var(--gris); }
+.cifras b { color: var(--tinta); }
+.boton.chico { padding: 10px 14px; font-size: 15px; border-radius: 12px; }
+.boton.claro { background: var(--marfil); color: var(--tinta); border: 1.5px solid var(--linea); }
+.agregar { width: 100%; margin-bottom: 14px; }
+.fila.toque { cursor: pointer; }
+.fila.toque:active { background: var(--marfil); }
+.borrar { border: 0; background: transparent; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: var(--gris); flex: none; }
+.borrar svg { width: 20px; height: 20px; }
+.ficha h2 { font-family: var(--serif); font-weight: 400; font-size: 28px; margin: 0; }
+.ficha .sub { color: var(--gris); margin: 2px 0 16px; }
+.datos-cliente { background: var(--papel); border: 1px solid var(--linea); border-radius: 16px; padding: 4px 16px; margin: 14px 0; }
+.datos-cliente div { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid var(--linea); font-size: 15px; }
+.datos-cliente div:first-child { border-top: 0; }
+.datos-cliente span { color: var(--gris); }
+.datos-cliente b { font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.medios { display: grid; gap: 8px; margin-top: 10px; }
+.medio { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--papel); border: 1px solid var(--linea); color: var(--tinta); text-decoration: none; font-weight: 600; }
+.medio svg { width: 22px; height: 22px; flex: none; }
+.dos-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.titulo-hoja { font-family: var(--serif); font-weight: 400; font-size: 24px; margin: 0 0 14px; }
 </style>
 </head>
 <body>
@@ -142,7 +179,7 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
 <section id="acceso">
   <img src="icon-192.png" alt="Logo de Cenzontle">
   <h1>Panel Cenzontle</h1>
-  <p>Tus ventas, gastos, prospectos y clientes en un solo lugar.</p>
+  <p>Tus ventas, cobros, gastos, prospectos y clientes en un solo lugar.</p>
   <div class="campo"><label for="usuario">Usuario</label><input id="usuario" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
   <div class="campo"><label for="contrasena">Contraseña</label><input id="contrasena" type="password" autocomplete="current-password"></div>
   <div class="error" id="errorAcceso" role="alert"></div>
@@ -174,20 +211,22 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
         <svg id="grafica" viewBox="0 0 320 150" width="100%" role="img" aria-label="Ingresos y gastos de los últimos 6 meses"></svg>
         <div class="leyenda"><span>Ingresos</span><span class="g">Gastos</span></div>
       </div>
-      <div class="bloque">
-        <h3>Prospectos</h3>
-        <div class="embudo" id="embudo"></div>
-      </div>
-      <div class="bloque">
-        <h3>Movimientos recientes</h3>
-        <div class="lista" id="recientes"></div>
-      </div>
+      <button class="cobrar" id="irCobros"><div><span>Por cobrar</span><b id="porCobrar">$0</b></div><em id="porCobrarN">Ver cobros</em></button>
+      <div class="bloque"><h3>Prospectos</h3><div class="embudo" id="embudo"></div></div>
+      <div class="bloque"><h3>Movimientos recientes</h3><div class="lista" id="recientes"></div></div>
     </section>
 
     <section class="vista oculto" id="v-prospectos">
       <h2 class="titulo-vista">Prospectos</h2>
-      <div class="filtros" id="filtros" role="group" aria-label="Filtrar por estado"></div>
+      <div class="filtros" id="filtros" role="group" aria-label="Filtrar prospectos por estado"></div>
       <div id="listaProspectos"></div>
+    </section>
+
+    <section class="vista oculto" id="v-cobros">
+      <h2 class="titulo-vista">Cobros</h2>
+      <button class="boton claro agregar" id="nuevaCot">Nueva cotización</button>
+      <div class="filtros" id="filtrosCot" role="group" aria-label="Filtrar cotizaciones"></div>
+      <div id="listaCot"></div>
     </section>
 
     <section class="vista oculto" id="v-clientes">
@@ -201,38 +240,42 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
     </section>
   </main>
 
-  <button class="nuevo" id="nuevo" aria-label="Registrar ingreso o gasto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="nuevo" id="nuevo" aria-label="Registrar ingreso, gasto o cotización"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 
   <nav aria-label="Secciones">
     <button data-v="inicio" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Inicio</button>
     <button data-v="prospectos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>Prospectos</button>
+    <button data-v="cobros"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Cobros</button>
     <button data-v="clientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2 .8 3 3 3 6"/></svg>Clientes</button>
     <button data-v="movimientos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg>Movimientos</button>
   </nav>
 </div>
 
 <div class="fondo oculto" id="fondoHoja">
-  <div class="hoja" role="dialog" aria-modal="true" aria-labelledby="tituloHoja">
+  <div class="hoja" role="dialog" aria-modal="true" aria-label="Nuevo registro">
     <div class="asa"></div>
-    <h2 id="tituloHoja" class="oculto">Nuevo registro</h2>
-    <div class="segmento" role="group" aria-label="Tipo de registro">
+    <div class="segmento" role="group" aria-label="Tipo de registro" style="grid-template-columns: repeat(3, 1fr)">
       <button id="segIngreso" aria-pressed="true">Ingreso</button>
       <button id="segGasto" aria-pressed="false">Gasto</button>
+      <button id="segCot" aria-pressed="false">Cotización</button>
     </div>
-    <label class="nota" for="monto">Monto</label>
+    <label class="nota" for="monto" id="etqMonto">Monto</label>
     <input class="importe" id="monto" inputmode="decimal" placeholder="$0.00">
     <div class="rejilla">
+      <div class="campo" id="cCotiz"><label for="cotizSel">Cotización</label><select id="cotizSel"></select></div>
       <div class="campo" id="cCliente"><label for="cliente">Cliente</label><input id="cliente" list="clientesLista" placeholder="Nombre del cliente o negocio"><datalist id="clientesLista"></datalist></div>
       <div class="campo"><label for="concepto">Concepto</label><input id="concepto" placeholder="Por ejemplo: anticipo del sistema"></div>
       <div class="dos">
         <div class="campo"><label for="fecha">Fecha</label><input id="fecha" type="date"></div>
         <div class="campo" id="cTipo"><label for="tipo">Tipo</label><select id="tipo"><option>Anticipo</option><option>Liquidación</option><option>Mensualidad</option><option>Servicio por evento</option><option>Otro</option></select></div>
         <div class="campo oculto" id="cCategoria"><label for="categoria">Categoría</label><select id="categoria"><option>Herramientas y suscripciones</option><option>Equipo</option><option>Internet y teléfono</option><option>Publicidad</option><option>Transporte</option><option>Insumos</option><option>Otro</option></select></div>
+        <div class="campo oculto" id="cEstadoCot"><label for="estadoCot">Estado</label><select id="estadoCot"><option>Enviada</option><option>Aceptada</option></select></div>
       </div>
       <div class="dos" id="cPago">
-        <div class="campo"><label for="forma">Forma de pago</label><select id="forma"><option>Transferencia</option><option>Efectivo</option><option>Otro</option></select></div>
-        <div class="campo"><label for="folio">Folio</label><input id="folio" placeholder="COT-CZ-0000"></div>
+        <div class="campo"><label for="forma">Forma de pago</label><select id="forma"><option>Transferencia</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
+        <div class="campo"><label for="folio">Folio</label><input id="folio" placeholder="COT-CZ-0000" autocapitalize="characters"></div>
       </div>
+      <div class="campo oculto" id="cFolioCot"><label for="folioCot">Folio de la cotización</label><input id="folioCot" autocapitalize="characters"></div>
       <div class="campo"><label for="notas">Notas</label><input id="notas" placeholder="Opcional"></div>
     </div>
     <div class="error" id="errorHoja" role="alert"></div>
@@ -240,25 +283,31 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
   </div>
 </div>
 
+<div class="fondo oculto" id="fondoFicha">
+  <div class="hoja ficha" role="dialog" aria-modal="true" aria-label="Ficha del cliente" id="ficha"></div>
+</div>
+
 <div class="aviso oculto" id="aviso" role="status"></div>
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbyokYmvEyuhSQYRk1g-OCPanPuyRfQfOlwinBmxT9S79ATAAm-T0iES2O8GCMs24SDs/exec';
 const ESTADOS = ['Nuevo', 'Contactado', 'Propuesta enviada', 'Negociando', 'Ganado', 'Perdido'];
+const ESTADOS_COT = ['Enviada', 'Aceptada', 'Pagada', 'Cancelada'];
 const $ = id => document.getElementById(id);
-const pesos = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: n % 1 ? 2 : 0 }).format(n || 0);
+const pesos = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: (n || 0) % 1 ? 2 : 0 }).format(n || 0);
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const fechaCorta = s => { if (!s) return ''; const [a, m, d] = s.split('-'); return `${+d} ${MESES[+m - 1].slice(0, 3)}`; };
-let estado = { datos: null, demo: false, filtro: 'Todos', tipoHoja: 'ingreso' };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fechaCorta = s => { if (!s) return ''; const [a, m, d] = s.split('-'); return `${+d} ${MESES[+m - 1].slice(0, 3)} ${a}`; };
+const tel10 = t => String(t || '').replace(/\D/g, '').slice(-10);
+const igual = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+let estado = { datos: null, demo: false, filtro: 'Todos', filtroCot: 'Por cobrar', tipoHoja: 'ingreso' };
 
 function guardarLocal(k, v) { try { localStorage.setItem('cz_' + k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) {} }
 function leerLocal(k) { try { return localStorage.getItem('cz_' + k); } catch (e) { return null; } }
 function borrarLocal() { try { ['token', 'datos', 'url', 'clave'].forEach(k => localStorage.removeItem('cz_' + k)); } catch (e) {} }
-
 function avisar(t) { const a = $('aviso'); a.textContent = t; a.classList.remove('oculto'); clearTimeout(avisar.t); avisar.t = setTimeout(() => a.classList.add('oculto'), 2600); }
 
-// ---------- conexión con la API ----------
+// ---------- conexión ----------
 async function api(accion, datos) {
   if (estado.demo) return demoAccion(accion, datos);
   const token = leerLocal('token');
@@ -272,14 +321,14 @@ async function api(accion, datos) {
   }
   return j.data;
 }
-
+async function accion(nombre, datos, mensaje) {
+  try { estado.datos = await api(nombre, datos); if (!estado.demo) guardarLocal('datos', estado.datos); pintar(); if (mensaje) avisar(mensaje); return true; }
+  catch (e) { avisar(e.message); return false; }
+}
 async function cargar() {
   $('actualizar').classList.add('girando');
-  try {
-    estado.datos = await api('todo');
-    if (!estado.demo) guardarLocal('datos', estado.datos);
-    pintar();
-  } catch (e) {
+  try { estado.datos = await api('todo'); if (!estado.demo) guardarLocal('datos', estado.datos); pintar(); }
+  catch (e) {
     if (e.message === 'Sesión vencida') return;
     const prev = leerLocal('datos');
     if (prev && !estado.datos) { estado.datos = JSON.parse(prev); pintar(); }
@@ -287,110 +336,192 @@ async function cargar() {
   } finally { $('actualizar').classList.remove('girando'); }
 }
 
-// ---------- pintar vistas ----------
+// ---------- vistas ----------
 function pintar() {
   const d = estado.datos; if (!d) return;
-  const ahora = new Date();
-  $('mesActual').textContent = `Ganancia de ${MESES[ahora.getMonth()]}`;
+  $('mesActual').textContent = `Ganancia de ${MESES[new Date().getMonth()]}`;
   const g = (d.mes.ingresos || 0) - (d.mes.gastos || 0);
-  $('ganancia').textContent = pesos(g);
-  $('ganancia').classList.toggle('negativa', g < 0);
+  $('ganancia').textContent = pesos(g); $('ganancia').classList.toggle('negativa', g < 0);
   $('ingMes').textContent = pesos(d.mes.ingresos); $('gasMes').textContent = pesos(d.mes.gastos); $('mensMes').textContent = pesos(d.mensualidades);
-  pintarGrafica(d.meses);
-  pintarEmbudo(d.prospectos);
-  $('recientes').innerHTML = filasMov(d.movimientos.slice(0, 5)) || vacio('Todavía no hay movimientos.', 'Registrar el primero');
-  $('listaMovimientos').innerHTML = filasMov(d.movimientos) || vacio('Todavía no hay movimientos.', 'Registrar el primero');
-  $('listaClientes').innerHTML = d.clientes.length ? d.clientes.map(c => `<div class="fila"><div class="txt"><b>${esc(c.negocio || c.nombre)}</b><small>${esc(c.negocio ? c.nombre : '')}${c.soporte === 'Sí' ? `${c.negocio ? ', ' : ''}soporte de ${pesos(c.mensualidad)} al mes` : ''}</small></div>${c.whatsapp ? `<a class="wa" href="https://wa.me/52${esc(String(c.whatsapp).replace(/\D/g, '').slice(-10))}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</div>`).join('') : vacio('Tus clientes aparecen aquí cuando marcas un prospecto como Ganado.');
-  $('clientesLista').innerHTML = d.clientes.map(c => `<option value="${esc(c.negocio || c.nombre)}">`).join('');
-  pintarProspectos();
-  document.querySelectorAll('.vacio .boton').forEach(b => b.onclick = abrirHoja);
+  $('porCobrar').textContent = pesos(d.porCobrar);
+  const nPend = d.cotizaciones.filter(c => c.estado === 'Aceptada' && c.saldo > 0).length;
+  $('porCobrarN').textContent = nPend ? `${nPend} ${nPend === 1 ? 'cotización' : 'cotizaciones'}` : 'Ver cobros';
+  pintarGrafica(d.meses); pintarEmbudo(d.prospectos);
+  $('recientes').innerHTML = filasMov(d.movimientos.slice(0, 5), false) || vacio('Todavía no hay movimientos.', 'Registrar el primero');
+  $('listaMovimientos').innerHTML = filasMov(d.movimientos, true) || vacio('Todavía no hay movimientos.', 'Registrar el primero');
+  document.querySelectorAll('#listaMovimientos .borrar').forEach(b => b.onclick = () => borrarMov(+b.dataset.i));
+  $('listaClientes').innerHTML = d.clientes.length ? d.clientes.map((c, i) => `<div class="fila toque" data-i="${i}" role="button" tabindex="0"><div class="txt"><b>${esc(c.negocio || c.nombre)}</b><small>${esc(c.negocio ? c.nombre : '')}${c.saldo > 0 ? `${c.negocio ? ', ' : ''}debe ${pesos(c.saldo)}` : ''}</small></div><span class="monto ingreso">${pesos(c.pagado)}</span></div>`).join('') : vacio('Tus clientes aparecen aquí cuando ganas un prospecto o aceptan una cotización.');
+  document.querySelectorAll('#listaClientes .fila').forEach(f => { f.onclick = () => abrirFicha(+f.dataset.i); f.onkeydown = e => { if (e.key === 'Enter') abrirFicha(+f.dataset.i); }; });
+  const nombres = [...new Set(d.clientes.map(c => c.negocio || c.nombre).concat(d.prospectos.map(p => p.negocio)).filter(Boolean))];
+  $('clientesLista').innerHTML = nombres.map(n => `<option value="${esc(n)}">`).join('');
+  pintarProspectos(); pintarCobros();
+  document.querySelectorAll('.vacio .boton').forEach(b => b.onclick = () => abrirHoja('ingreso'));
 }
-
-function vacio(t, accion) { return `<div class="vacio">${t}${accion ? `<br><button class="boton">${accion}</button>` : ''}</div>`; }
-function filasMov(m) {
-  return m.map(x => `<div class="fila"><span class="punto ${x.tipo}"></span><div class="txt"><b>${esc(x.titulo)}</b><small>${esc(x.detalle)}, ${fechaCorta(x.fecha)}</small></div><span class="monto ${x.tipo}">${x.tipo === 'gasto' ? '−' : '+'}${pesos(x.monto)}</span></div>`).join('');
+function vacio(t, a) { return `<div class="vacio">${t}${a ? `<br><button class="boton">${a}</button>` : ''}</div>`; }
+function filasMov(m, conBorrar) {
+  return m.map((x, i) => `<div class="fila"><span class="punto ${x.tipo}"></span><div class="txt"><b>${esc(x.titulo)}</b><small>${esc(x.detalle)}${x.folio ? `, ${esc(x.folio)}` : ''}, ${fechaCorta(x.fecha)}</small></div><span class="monto ${x.tipo}">${x.tipo === 'gasto' ? '−' : '+'}${pesos(x.monto)}</span>${conBorrar ? `<button class="borrar" data-i="${i}" aria-label="Borrar ${esc(x.titulo)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>` : ''}</div>`).join('');
 }
-
 function pintarGrafica(meses) {
-  const W = 320, H = 150, base = 120, max = Math.max(1, ...meses.map(m => Math.max(m.ingresos, m.gastos)));
-  const ancho = W / meses.length; let s = '';
-  s += `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#DDD6CA" stroke-width="1"/>`;
+  const W = 320, base = 120, max = Math.max(1, ...meses.map(m => Math.max(m.ingresos, m.gastos))), ancho = W / meses.length;
+  let s = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#DDD6CA"/>`;
   meses.forEach((m, i) => {
-    const x = i * ancho + ancho / 2, hi = (m.ingresos / max) * 100, hg = (m.gastos / max) * 100;
+    const x = i * ancho + ancho / 2, hi = m.ingresos / max * 100, hg = m.gastos / max * 100, ult = i === meses.length - 1;
     s += `<rect x="${x - 13}" y="${base - hi}" width="12" height="${hi}" rx="3" fill="#D6006F"><title>Ingresos ${m.mes}: ${pesos(m.ingresos)}</title></rect>`;
     s += `<rect x="${x + 1}" y="${base - hg}" width="12" height="${hg}" rx="3" fill="#C9C4BB"><title>Gastos ${m.mes}: ${pesos(m.gastos)}</title></rect>`;
-    s += `<text x="${x}" y="${base + 20}" text-anchor="middle" font-size="12" fill="${i === meses.length - 1 ? '#15171B' : '#4A4F57'}" font-weight="${i === meses.length - 1 ? 700 : 400}" font-family="Libre Franklin, Arial">${m.mes}</text>`;
+    s += `<text x="${x}" y="${base + 20}" text-anchor="middle" font-size="12" fill="${ult ? '#15171B' : '#4A4F57'}" font-weight="${ult ? 700 : 400}" font-family="Libre Franklin, Arial">${m.mes}</text>`;
   });
   $('grafica').innerHTML = s;
 }
-
 function pintarEmbudo(ps) {
-  const etapas = [['Nuevo', 'Nuevos'], ['Contactado', 'Contactados'], ['Propuesta enviada', 'Con propuesta'], ['Negociando', 'Negociando'], ['Ganado', 'Ganados'], ['Perdido', 'Perdidos']];
-  $('embudo').innerHTML = etapas.map(([e, t]) => `<button class="etapa" data-e="${e}"><b>${ps.filter(p => p.estado === e).length}</b><span>${t}</span></button>`).join('');
+  const et = [['Nuevo', 'Nuevos'], ['Contactado', 'Contactados'], ['Propuesta enviada', 'Con propuesta'], ['Negociando', 'Negociando'], ['Ganado', 'Ganados'], ['Perdido', 'Perdidos']];
+  $('embudo').innerHTML = et.map(([e, t]) => `<button class="etapa" data-e="${e}"><b>${ps.filter(p => p.estado === e).length}</b><span>${t}</span></button>`).join('');
   document.querySelectorAll('.etapa').forEach(b => b.onclick = () => { estado.filtro = b.dataset.e; ir('prospectos'); });
 }
-
 function pintarProspectos() {
   const ps = estado.datos.prospectos;
   $('filtros').innerHTML = ['Todos'].concat(ESTADOS).map(e => `<button aria-pressed="${estado.filtro === e}" data-e="${e}">${e}${e === 'Todos' ? '' : ` (${ps.filter(p => p.estado === e).length})`}</button>`).join('');
   document.querySelectorAll('#filtros button').forEach(b => b.onclick = () => { estado.filtro = b.dataset.e; pintarProspectos(); });
   const lista = ps.filter(p => estado.filtro === 'Todos' || p.estado === estado.filtro);
   $('listaProspectos').innerHTML = lista.length ? lista.map(p => {
-    const tel = String(p.whatsapp).replace(/\D/g, '').slice(-10);
-    const msg = encodeURIComponent(`Hola ${p.nombre}, soy Rodrigo de Cenzontle. Gracias por contarnos de ${p.negocio}.`);
-    return `<article class="prospecto"><h4>${esc(p.negocio)}</h4><div class="giro">${esc(p.giro)}, ${esc(p.nombre)}, ${fechaCorta(p.fecha)}</div>${p.urge ? `<p class="urge">${esc(p.urge)}</p>` : '<p class="urge nota">Sin comentarios.</p>'}<div class="acciones"><select aria-label="Estado de ${esc(p.negocio)}" data-f="${p.fila}">${ESTADOS.map(e => `<option${e === p.estado ? ' selected' : ''}>${e}</option>`).join('')}</select>${tel ? `<a class="wa" href="https://wa.me/52${tel}?text=${msg}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</div></article>`;
+    const t = tel10(p.whatsapp), msg = encodeURIComponent(`Hola ${p.nombre}, soy Rodrigo de Cenzontle. Gracias por contarnos de ${p.negocio}.`);
+    return `<article class="prospecto"><h4>${esc(p.negocio)}</h4><div class="giro">${esc(p.giro)}, ${esc(p.nombre)}, ${fechaCorta(p.fecha)}</div><p class="urge">${p.urge ? esc(p.urge) : '<span class="nota">Sin comentarios.</span>'}</p><div class="acciones"><select aria-label="Estado de ${esc(p.negocio)}" data-f="${p.fila}">${ESTADOS.map(e => `<option${e === p.estado ? ' selected' : ''}>${e}</option>`).join('')}</select>${t ? `<a class="wa" href="https://wa.me/52${t}?text=${msg}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</div></article>`;
   }).join('') : `<div class="lista">${vacio(estado.filtro === 'Todos' ? 'Cuando alguien llene tu formulario de diagnóstico, aparecerá aquí.' : 'No hay prospectos en este estado.')}</div>`;
-  document.querySelectorAll('#listaProspectos select').forEach(s => s.onchange = async () => {
-    s.disabled = true;
-    try { estado.datos = await api('cambiarEstado', { fila: s.dataset.f, estado: s.value }); pintar(); avisar(s.value === 'Ganado' ? 'Marcado como ganado y agregado a Clientes' : `Estado cambiado a ${s.value}`); }
-    catch (e) { avisar(e.message); s.disabled = false; }
-  });
+  document.querySelectorAll('#listaProspectos select').forEach(s => s.onchange = async () => { s.disabled = true; if (!await accion('cambiarEstado', { fila: s.dataset.f, estado: s.value }, s.value === 'Ganado' ? 'Ganado: se agregó a Clientes' : `Estado cambiado a ${s.value}`)) s.disabled = false; });
+}
+function pintarCobros() {
+  const cs = estado.datos.cotizaciones, F = { 'Por cobrar': c => c.estado === 'Aceptada' && c.saldo > 0, 'Enviadas': c => c.estado === 'Enviada', 'Pagadas': c => c.estado === 'Pagada', 'Todas': () => true };
+  $('filtrosCot').innerHTML = Object.keys(F).map(k => `<button aria-pressed="${estado.filtroCot === k}" data-k="${k}">${k} (${cs.filter(F[k]).length})</button>`).join('');
+  document.querySelectorAll('#filtrosCot button').forEach(b => b.onclick = () => { estado.filtroCot = b.dataset.k; pintarCobros(); });
+  const lista = cs.filter(F[estado.filtroCot]);
+  $('listaCot').innerHTML = lista.length ? lista.map(c => {
+    const pct = c.total ? Math.min(100, Math.round(c.pagado / c.total * 100)) : 0;
+    return `<article class="cotizacion"><div class="cab"><h4>${esc(c.cliente)}</h4><span class="folio">${esc(c.folio)}</span></div><div class="giro nota">${esc(c.concepto)}, ${fechaCorta(c.fecha)}</div><div class="barra-pago" aria-hidden="true"><i style="width: ${pct}%"></i></div><div class="cifras"><span>Pagado <b>${pesos(c.pagado)}</b> de ${pesos(c.total)}</span><span>Saldo <b>${pesos(c.saldo)}</b></span></div><div class="acciones" style="margin-top: 12px"><select aria-label="Estado de ${esc(c.folio)}" data-f="${c.fila}">${ESTADOS_COT.map(e => `<option${e === c.estado ? ' selected' : ''}>${e}</option>`).join('')}</select>${c.saldo > 0 && c.estado !== 'Cancelada' ? `<button class="boton chico" data-folio="${esc(c.folio)}">Registrar pago</button>` : ''}</div></article>`;
+  }).join('') : `<div class="lista">${vacio(estado.filtroCot === 'Por cobrar' ? 'No tienes cobros pendientes.' : 'No hay cotizaciones aquí.')}</div>`;
+  document.querySelectorAll('#listaCot select').forEach(s => s.onchange = async () => { s.disabled = true; if (!await accion('cambiarEstadoCotizacion', { fila: s.dataset.f, estado: s.value }, `Cotización ${s.value.toLowerCase()}`)) s.disabled = false; });
+  document.querySelectorAll('#listaCot button[data-folio]').forEach(b => b.onclick = () => abrirHoja('ingreso', b.dataset.folio));
 }
 
 // ---------- navegación ----------
+const VISTAS = ['inicio', 'prospectos', 'cobros', 'clientes', 'movimientos'];
 function ir(v) {
-  ['inicio', 'prospectos', 'clientes', 'movimientos'].forEach(n => $('v-' + n).classList.toggle('oculto', n !== v));
+  VISTAS.forEach(n => $('v-' + n).classList.toggle('oculto', n !== v));
   $('cabeceraInicio').classList.toggle('oculto', v !== 'inicio');
   document.querySelectorAll('nav button').forEach(b => { if (b.dataset.v === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-  if (v === 'prospectos') pintarProspectos();
+  if (estado.datos) { if (v === 'prospectos') pintarProspectos(); if (v === 'cobros') pintarCobros(); }
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => { if (b.dataset.v === 'prospectos') estado.filtro = 'Todos'; ir(b.dataset.v); });
+$('irCobros').onclick = () => { estado.filtroCot = 'Por cobrar'; ir('cobros'); };
 
-// ---------- hoja de captura ----------
+// ---------- hoja de registro ----------
 function tipoHoja(t) {
   estado.tipoHoja = t;
-  $('segIngreso').setAttribute('aria-pressed', t === 'ingreso'); $('segGasto').setAttribute('aria-pressed', t === 'gasto');
-  ['cCliente', 'cTipo', 'cPago'].forEach(id => $(id).classList.toggle('oculto', t === 'gasto'));
-  $('cCategoria').classList.toggle('oculto', t === 'ingreso');
-  $('concepto').placeholder = t === 'ingreso' ? 'Por ejemplo: anticipo del sistema' : 'Por ejemplo: plan de celular';
-  $('guardar').textContent = t === 'ingreso' ? 'Guardar ingreso' : 'Guardar gasto';
+  [['segIngreso', 'ingreso'], ['segGasto', 'gasto'], ['segCot', 'cotizacion']].forEach(([id, k]) => $(id).setAttribute('aria-pressed', t === k));
+  const vis = { cCotiz: t === 'ingreso', cCliente: t !== 'gasto', cTipo: t === 'ingreso', cPago: t === 'ingreso', cCategoria: t === 'gasto', cEstadoCot: t === 'cotizacion', cFolioCot: t === 'cotizacion' };
+  Object.keys(vis).forEach(id => $(id).classList.toggle('oculto', !vis[id]));
+  $('etqMonto').textContent = t === 'cotizacion' ? 'Total de la cotización' : 'Monto';
+  $('concepto').placeholder = t === 'ingreso' ? 'Por ejemplo: anticipo del sistema' : t === 'gasto' ? 'Por ejemplo: plan de celular' : 'Por ejemplo: sistema de inventario';
+  $('guardar').textContent = t === 'ingreso' ? 'Guardar ingreso' : t === 'gasto' ? 'Guardar gasto' : 'Guardar cotización';
+  if (t === 'cotizacion' && !$('folioCot').value) $('folioCot').value = estado.datos ? estado.datos.siguienteFolio : '';
 }
-function abrirHoja() {
-  ['monto', 'cliente', 'concepto', 'folio', 'notas'].forEach(id => $(id).value = '');
-  $('fecha').value = new Date().toLocaleDateString('en-CA'); $('errorHoja').textContent = '';
-  tipoHoja('ingreso'); $('fondoHoja').classList.remove('oculto'); setTimeout(() => $('monto').focus(), 150);
+function llenarCotizaciones(sel) {
+  const abiertas = estado.datos.cotizaciones.filter(c => c.saldo > 0 && (c.estado === 'Aceptada' || c.estado === 'Enviada'));
+  $('cotizSel').innerHTML = '<option value="">Sin cotización</option>' + abiertas.map(c => `<option value="${esc(c.folio)}"${c.folio === sel ? ' selected' : ''}>${esc(c.folio)}, ${esc(c.cliente)}, saldo ${pesos(c.saldo)}</option>`).join('');
+}
+$('cotizSel').onchange = () => {
+  const c = estado.datos.cotizaciones.find(x => x.folio === $('cotizSel').value);
+  if (!c) { $('folio').value = ''; return; }
+  const primero = c.pagado === 0;
+  $('cliente').value = c.cliente; $('folio').value = c.folio;
+  $('tipo').value = primero ? 'Anticipo' : 'Liquidación';
+  $('monto').value = String(primero ? Math.round(c.total / 2 * 100) / 100 : c.saldo);
+  $('concepto').value = `${primero ? 'Anticipo' : 'Pago'}: ${c.concepto}`;
+};
+function abrirHoja(tipo, folio) {
+  ['monto', 'cliente', 'concepto', 'folio', 'folioCot', 'notas'].forEach(id => $(id).value = '');
+  $('fecha').value = new Date().toLocaleDateString('en-CA'); $('errorHoja').textContent = ''; $('estadoCot').value = 'Enviada';
+  if (estado.datos) llenarCotizaciones(folio || '');
+  tipoHoja(tipo || 'ingreso');
+  if (folio) $('cotizSel').onchange();
+  $('fondoHoja').classList.remove('oculto'); setTimeout(() => $('monto').focus(), 150);
 }
 function cerrarHoja() { $('fondoHoja').classList.add('oculto'); }
-$('nuevo').onclick = abrirHoja;
-$('segIngreso').onclick = () => tipoHoja('ingreso');
-$('segGasto').onclick = () => tipoHoja('gasto');
+$('nuevo').onclick = () => abrirHoja('ingreso');
+$('nuevaCot').onclick = () => abrirHoja('cotizacion');
+$('segIngreso').onclick = () => tipoHoja('ingreso'); $('segGasto').onclick = () => tipoHoja('gasto'); $('segCot').onclick = () => tipoHoja('cotizacion');
 $('fondoHoja').onclick = e => { if (e.target === $('fondoHoja')) cerrarHoja(); };
-document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
+$('fondoFicha').onclick = e => { if (e.target === $('fondoFicha')) cerrarFicha(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { cerrarHoja(); cerrarFicha(); } });
 $('guardar').onclick = async () => {
-  const monto = parseFloat(String($('monto').value).replace(/[^0-9.]/g, ''));
-  const ing = estado.tipoHoja === 'ingreso';
-  if (!(monto > 0)) return $('errorHoja').textContent = 'Escribe el monto.';
-  if (ing && !$('cliente').value.trim()) return $('errorHoja').textContent = 'Escribe el cliente.';
+  const t = estado.tipoHoja, monto = parseFloat(String($('monto').value).replace(/[^0-9.]/g, ''));
+  if (!(monto > 0)) return $('errorHoja').textContent = t === 'cotizacion' ? 'Escribe el total.' : 'Escribe el monto.';
+  if (t !== 'gasto' && !$('cliente').value.trim()) return $('errorHoja').textContent = 'Escribe el cliente.';
   if (!$('concepto').value.trim()) return $('errorHoja').textContent = 'Escribe el concepto.';
-  const datos = ing
-    ? { monto, cliente: $('cliente').value.trim(), concepto: $('concepto').value.trim(), fecha: $('fecha').value, tipo: $('tipo').value, forma: $('forma').value, folio: $('folio').value.trim(), notas: $('notas').value.trim() }
-    : { monto, concepto: $('concepto').value.trim(), fecha: $('fecha').value, categoria: $('categoria').value, notas: $('notas').value.trim() };
+  let nombre, datos, msg;
+  if (t === 'ingreso') { nombre = 'registrarIngreso'; msg = 'Ingreso guardado'; datos = { monto, cliente: $('cliente').value.trim(), concepto: $('concepto').value.trim(), fecha: $('fecha').value, tipo: $('tipo').value, forma: $('forma').value, folio: $('folio').value.trim(), notas: $('notas').value.trim() }; }
+  else if (t === 'gasto') { nombre = 'registrarGasto'; msg = 'Gasto guardado'; datos = { monto, concepto: $('concepto').value.trim(), fecha: $('fecha').value, categoria: $('categoria').value, notas: $('notas').value.trim() }; }
+  else { nombre = 'registrarCotizacion'; msg = 'Cotización guardada'; datos = { total: monto, cliente: $('cliente').value.trim(), concepto: $('concepto').value.trim(), fecha: $('fecha').value, folio: $('folioCot').value.trim().toUpperCase(), estado: $('estadoCot').value, notas: $('notas').value.trim() }; }
   $('guardar').disabled = true; $('guardar').textContent = 'Guardando…';
-  try { estado.datos = await api(ing ? 'registrarIngreso' : 'registrarGasto', datos); pintar(); cerrarHoja(); avisar(ing ? 'Ingreso guardado' : 'Gasto guardado'); }
+  try { estado.datos = await api(nombre, datos); if (!estado.demo) guardarLocal('datos', estado.datos); pintar(); cerrarHoja(); avisar(msg); }
   catch (e) { $('errorHoja').textContent = e.message; }
   finally { $('guardar').disabled = false; tipoHoja(estado.tipoHoja); }
 };
+
+// ---------- borrar movimiento ----------
+async function borrarMov(i) {
+  const m = estado.datos.movimientos[i]; if (!m) return;
+  if (!confirm(`¿Borrar ${m.tipo === 'gasto' ? 'el gasto' : 'el ingreso'} "${m.titulo}" por ${pesos(m.monto)}? No se puede deshacer.`)) return;
+  await accion('eliminarMovimiento', { tipo: m.tipo, fila: m.fila, monto: m.monto }, 'Movimiento borrado');
+}
+
+// ---------- ficha de cliente ----------
+const ICON = {
+  wa: '<svg viewBox="0 0 24 24" fill="none" stroke="#1B7A4A" stroke-width="2" stroke-linecap="round"><path d="M4 20l1.4-4A8 8 0 1 1 8 18.6z"/></svg>',
+  tel: '<svg viewBox="0 0 24 24" fill="none" stroke="#15171B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="#C4005F" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>'
+};
+function abrirFicha(i, editar) {
+  const c = estado.datos.clientes[i]; if (!c) return;
+  const t = tel10(c.whatsapp), cots = estado.datos.cotizaciones.filter(x => igual(x.cliente, c.nombre) || (c.negocio && igual(x.cliente, c.negocio)));
+  const pagos = estado.datos.movimientos.filter(m => m.tipo === 'ingreso' && (igual(m.cliente, c.nombre) || (c.negocio && igual(m.cliente, c.negocio))));
+  const fila = (k, v) => `<div><span>${k}</span><b>${v || '—'}</b></div>`;
+  let h = `<div class="asa"></div><h2>${esc(c.negocio || c.nombre)}</h2><p class="sub">${esc(c.negocio ? c.nombre : '')}</p>`;
+  if (!editar) {
+    h += `<div class="dos-botones"><button class="boton" id="fContactar">Contactar</button><button class="boton claro" id="fEditar">Editar datos</button></div><div class="medios oculto" id="fMedios">
+      ${t ? `<a class="medio" href="https://wa.me/52${t}?text=${encodeURIComponent(`Hola ${c.nombre}, soy Rodrigo de Cenzontle.`)}" target="_blank" rel="noopener">${ICON.wa}WhatsApp ${esc(c.whatsapp)}</a><a class="medio" href="tel:+52${t}">${ICON.tel}Llamar</a>` : ''}
+      ${c.correo ? `<a class="medio" href="mailto:${esc(c.correo)}">${ICON.mail}Correo ${esc(c.correo)}</a>` : ''}
+      ${!t && !c.correo ? '<p class="nota">Este cliente no tiene WhatsApp ni correo registrados. Agrégalos con Editar datos.</p>' : ''}</div>
+      <div class="datos-cliente">${fila('Pagado', pesos(c.pagado))}${fila('Por cobrar', pesos(c.saldo))}${fila('Soporte mensual', c.soporte === 'Sí' ? `Sí, ${pesos(c.mensualidad)} al mes` : (c.soporte || 'Sin definir'))}${fila('Estado', esc(c.estado))}${fila('Cliente desde', fechaCorta(c.inicio))}${fila('WhatsApp', esc(c.whatsapp))}${fila('Correo', esc(c.correo))}${c.notas ? fila('Notas', esc(c.notas)) : ''}</div>
+      <h3 class="nota" style="font-weight: 600; margin: 18px 0 8px">Cotizaciones</h3><div class="lista">${cots.length ? cots.map(x => `<div class="fila"><div class="txt"><b>${esc(x.folio)}, ${esc(x.concepto)}</b><small>${esc(x.estado)}, saldo ${pesos(x.saldo)}</small></div><span class="monto">${pesos(x.total)}</span></div>`).join('') : vacio('Sin cotizaciones.')}</div>
+      <h3 class="nota" style="font-weight: 600; margin: 18px 0 8px">Pagos recibidos</h3><div class="lista">${pagos.length ? filasMov(pagos, false) : vacio('Sin pagos registrados.')}</div>
+      <button class="boton claro" style="width: 100%; margin-top: 18px" id="fCerrar">Cerrar</button>`;
+  } else {
+    h += `<div class="rejilla">
+      <div class="campo"><label for="eNeg">Negocio</label><input id="eNeg" value="${esc(c.negocio)}"></div>
+      <div class="campo"><label for="eWa">WhatsApp</label><input id="eWa" inputmode="tel" value="${esc(c.whatsapp)}"></div>
+      <div class="campo"><label for="eMail">Correo</label><input id="eMail" inputmode="email" autocapitalize="none" value="${esc(c.correo)}"></div>
+      <div class="dos"><div class="campo"><label for="eSop">Soporte mensual</label><select id="eSop"><option value="">Sin definir</option><option${c.soporte === 'Sí' ? ' selected' : ''}>Sí</option><option${c.soporte === 'No' ? ' selected' : ''}>No</option></select></div>
+      <div class="campo"><label for="eMen">Mensualidad</label><input id="eMen" inputmode="decimal" value="${c.mensualidad || ''}"></div></div>
+      <div class="campo"><label for="eEst">Estado</label><select id="eEst">${['Activo', 'Pausado', 'Terminado'].map(e => `<option${e === c.estado ? ' selected' : ''}>${e}</option>`).join('')}</select></div>
+      <div class="campo"><label for="eNot">Notas</label><input id="eNot" value="${esc(c.notas)}"></div></div>
+      <div class="error" id="errorFicha" role="alert"></div>
+      <div class="dos-botones" style="margin-top: 16px"><button class="boton claro" id="fCancelar">Cancelar</button><button class="boton" id="fGuardar">Guardar</button></div>`;
+  }
+  $('ficha').innerHTML = h; $('fondoFicha').classList.remove('oculto');
+  if (!editar) {
+    $('fContactar').onclick = () => $('fMedios').classList.toggle('oculto');
+    $('fEditar').onclick = () => abrirFicha(i, true);
+    $('fCerrar').onclick = cerrarFicha;
+  } else {
+    $('fCancelar').onclick = () => abrirFicha(i);
+    $('fGuardar').onclick = async () => {
+      $('fGuardar').disabled = true;
+      const ok = await accion('actualizarCliente', { fila: c.fila, negocio: $('eNeg').value, whatsapp: $('eWa').value, correo: $('eMail').value, soporte: $('eSop').value, mensualidad: $('eMen').value, estado: $('eEst').value, notas: $('eNot').value }, 'Datos del cliente guardados');
+      if (ok) { const j = estado.datos.clientes.findIndex(x => x.fila === c.fila); abrirFicha(j >= 0 ? j : i); } else $('fGuardar').disabled = false;
+    };
+  }
+}
+function cerrarFicha() { $('fondoFicha').classList.add('oculto'); }
 
 // ---------- acceso ----------
 function mostrarApp(demo) {
@@ -399,6 +530,7 @@ function mostrarApp(demo) {
   const prev = !demo && leerLocal('datos'); if (prev) { estado.datos = JSON.parse(prev); pintar(); }
   cargar();
 }
+function salirApp() { estado.datos = null; cerrarHoja(); cerrarFicha(); $('app').classList.add('oculto'); $('acceso').classList.remove('oculto'); }
 $('entrar').onclick = async () => {
   const usuario = $('usuario').value.trim(), contrasena = $('contrasena').value;
   if (!usuario || !contrasena) return $('errorAcceso').textContent = 'Escribe tu usuario y tu contraseña.';
@@ -414,8 +546,7 @@ $('entrar').onclick = async () => {
   } finally { $('entrar').textContent = 'Entrar'; $('entrar').disabled = false; }
 };
 $('contrasena').addEventListener('keydown', e => { if (e.key === 'Enter') $('entrar').click(); });
-$('verDemo').onclick = () => mostrarApp(true);
-function salirApp() { estado.datos = null; $('app').classList.add('oculto'); $('acceso').classList.remove('oculto'); }
+$('verDemo').onclick = () => { demoDB = null; mostrarApp(true); };
 $('salir').onclick = () => { if (!estado.demo) borrarLocal(); salirApp(); };
 $('actualizar').onclick = cargar;
 
@@ -423,53 +554,55 @@ $('actualizar').onclick = cargar;
 let demoDB = null;
 function demoBase() {
   const hoy = new Date(), f = (m, d) => new Date(hoy.getFullYear(), hoy.getMonth() - m, d).toLocaleDateString('en-CA');
+  let n = 100;
+  const I = (m, d, titulo, cliente, monto, folio) => ({ tipo: 'ingreso', fila: n++, fecha: f(m, d), titulo, detalle: cliente, cliente, monto, folio: folio || '' });
+  const G = (m, d, titulo, cat, monto) => ({ tipo: 'gasto', fila: n++, fecha: f(m, d), titulo, detalle: cat, monto });
   return {
-    ing: [
-      { fecha: f(0, 3), titulo: 'Anticipo sistema de ventas', detalle: 'Café La Esquina', monto: 1600 },
-      { fecha: f(0, 8), titulo: 'Mensualidad de soporte', detalle: 'Estética Bella', monto: 450 },
-      { fecha: f(0, 12), titulo: 'Tarjeta de lealtad', detalle: 'Barbería El Patrón', monto: 1200 },
-      { fecha: f(1, 6), titulo: 'Página web', detalle: 'Dulcería Lupita', monto: 2500 },
-      { fecha: f(1, 20), titulo: 'Mensualidad de soporte', detalle: 'Estética Bella', monto: 450 },
-      { fecha: f(2, 9), titulo: 'Liquidación de agenda', detalle: 'Estética Bella', monto: 1800 },
-      { fecha: f(3, 14), titulo: 'Logo e identidad', detalle: 'Dulcería Lupita', monto: 1200 },
-      { fecha: f(4, 2), titulo: 'Catálogo en línea', detalle: 'Ferretería Hidalgo', monto: 900 }
-    ],
-    gas: [
-      { fecha: f(0, 2), titulo: 'Plan de celular', detalle: 'Internet y teléfono', monto: 300 },
-      { fecha: f(0, 10), titulo: 'Papel para etiquetas', detalle: 'Insumos', monto: 180 },
-      { fecha: f(1, 2), titulo: 'Plan de celular', detalle: 'Internet y teléfono', monto: 300 },
-      { fecha: f(2, 2), titulo: 'Publicidad en Instagram', detalle: 'Publicidad', monto: 250 },
-      { fecha: f(3, 2), titulo: 'Plan de celular', detalle: 'Internet y teléfono', monto: 300 }
-    ],
-    clientes: [
-      { nombre: 'Laura M.', negocio: 'Estética Bella', whatsapp: '', soporte: 'Sí', mensualidad: 450, estado: 'Activo' },
-      { nombre: 'Guadalupe R.', negocio: 'Dulcería Lupita', whatsapp: '', soporte: 'No', mensualidad: 0, estado: 'Activo' },
-      { nombre: 'Andrés T.', negocio: 'Barbería El Patrón', whatsapp: '', soporte: 'Sí', mensualidad: 350, estado: 'Activo' }
-    ],
-    prospectos: [
-      { fila: 5, fecha: f(0, 14), negocio: 'Taquería Don Beto', nombre: 'Alberto', giro: 'Taquería', whatsapp: '', urge: 'Que mis clientes puedan ver el menú y pedir por WhatsApp.', estado: 'Nuevo' },
-      { fila: 4, fecha: f(0, 11), negocio: 'Consultorio Dental Sonríe', nombre: 'Dra. Paola', giro: 'Consultorio dental', whatsapp: '', urge: 'Recordatorios de cita para que no falten los pacientes.', estado: 'Contactado' },
-      { fila: 3, fecha: f(0, 7), negocio: 'Café La Esquina', nombre: 'Jesús', giro: 'Cafetería', whatsapp: '', urge: 'El control de ingresos y egresos de mis dos sucursales.', estado: 'Ganado' },
-      { fila: 2, fecha: f(0, 4), negocio: 'Papelería Escolar', nombre: 'Marta', giro: 'Papelería', whatsapp: '', urge: 'Saber qué tengo en existencia.', estado: 'Propuesta enviada' }
-    ]
+    mov: [I(0, 3, 'Anticipo: sistema de ventas', 'Café La Esquina', 1600, 'COT-CZ-0004'), I(0, 8, 'Mensualidad de soporte', 'Estética Bella', 450), I(0, 12, 'Anticipo: tarjeta de lealtad', 'Barbería El Patrón', 600, 'COT-CZ-0005'),
+          I(1, 6, 'Pago: página web', 'Dulcería Lupita', 2500, 'COT-CZ-0003'), I(1, 20, 'Mensualidad de soporte', 'Estética Bella', 450), I(2, 9, 'Pago: agenda de citas', 'Estética Bella', 1800, 'COT-CZ-0002'),
+          I(3, 14, 'Logo e identidad', 'Dulcería Lupita', 1200), I(4, 2, 'Catálogo en línea', 'Ferretería Hidalgo', 900),
+          G(0, 2, 'Plan de celular', 'Internet y teléfono', 300), G(0, 10, 'Papel para etiquetas', 'Insumos', 180), G(1, 2, 'Plan de celular', 'Internet y teléfono', 300), G(2, 2, 'Publicidad en Instagram', 'Publicidad', 250)],
+    cot: [{ fila: 2, folio: 'COT-CZ-0002', fecha: f(3, 1), cliente: 'Estética Bella', concepto: 'Agenda de citas con recordatorios', total: 1800, estado: 'Pagada' },
+          { fila: 3, folio: 'COT-CZ-0003', fecha: f(2, 1), cliente: 'Dulcería Lupita', concepto: 'Página web', total: 2500, estado: 'Pagada' },
+          { fila: 4, folio: 'COT-CZ-0004', fecha: f(0, 1), cliente: 'Café La Esquina', concepto: 'Control de ventas y reservaciones', total: 3200, estado: 'Aceptada' },
+          { fila: 5, folio: 'COT-CZ-0005', fecha: f(0, 10), cliente: 'Barbería El Patrón', concepto: 'Tarjeta de lealtad digital', total: 1200, estado: 'Aceptada' },
+          { fila: 6, folio: 'COT-CZ-0006', fecha: f(0, 13), cliente: 'Taquería Don Beto', concepto: 'Menú digital con QR', total: 1500, estado: 'Enviada' }],
+    clientes: [{ fila: 2, nombre: 'Laura M.', negocio: 'Estética Bella', whatsapp: '5512345678', correo: 'contacto@esteticabella.mx', inicio: f(3, 1), soporte: 'Sí', mensualidad: 450, estado: 'Activo', notas: '' },
+               { fila: 3, nombre: 'Guadalupe R.', negocio: 'Dulcería Lupita', whatsapp: '5587654321', correo: '', inicio: f(3, 14), soporte: 'No', mensualidad: 0, estado: 'Activo', notas: '' },
+               { fila: 4, nombre: 'Jesús', negocio: 'Café La Esquina', whatsapp: '5511223344', correo: '', inicio: f(0, 3), soporte: '', mensualidad: 0, estado: 'Activo', notas: 'Dos sucursales' },
+               { fila: 5, nombre: 'Andrés T.', negocio: 'Barbería El Patrón', whatsapp: '', correo: 'elpatron@correo.mx', inicio: f(0, 12), soporte: 'Sí', mensualidad: 350, estado: 'Activo', notas: '' }],
+    prospectos: [{ fila: 5, fecha: f(0, 14), negocio: 'Taquería Don Beto', nombre: 'Alberto', giro: 'Taquería', whatsapp: '5599887766', urge: 'Que mis clientes vean el menú y pidan por WhatsApp.', estado: 'Propuesta enviada' },
+                 { fila: 4, fecha: f(0, 11), negocio: 'Consultorio Dental Sonríe', nombre: 'Dra. Paola', giro: 'Consultorio dental', whatsapp: '5544332211', urge: 'Recordatorios de cita para que no falten los pacientes.', estado: 'Contactado' },
+                 { fila: 3, fecha: f(0, 9), negocio: 'Papelería Escolar', nombre: 'Marta', giro: 'Papelería', whatsapp: '', urge: 'Saber qué tengo en existencia.', estado: 'Nuevo' }]
   };
 }
-function demoAccion(accion, datos) {
+function demoAccion(nombre, d) {
   if (!demoDB) demoDB = demoBase();
-  const db = demoDB;
-  if (accion === 'registrarIngreso') db.ing.push({ fecha: datos.fecha, titulo: datos.concepto, detalle: datos.cliente, monto: datos.monto });
-  if (accion === 'registrarGasto') db.gas.push({ fecha: datos.fecha, titulo: datos.concepto, detalle: datos.categoria, monto: datos.monto });
-  if (accion === 'cambiarEstado') { const p = db.prospectos.find(x => String(x.fila) === String(datos.fila)); if (p) { p.estado = datos.estado; if (datos.estado === 'Ganado' && !db.clientes.some(c => c.negocio === p.negocio)) db.clientes.push({ nombre: p.nombre, negocio: p.negocio, whatsapp: '', soporte: '', mensualidad: 0, estado: 'Activo' }); } }
-  const hoy = new Date(), meses = [];
+  const db = demoDB, hoy = new Date().toLocaleDateString('en-CA');
+  const addCli = (cli) => { if (!db.clientes.some(c => igual(c.nombre, cli) || igual(c.negocio, cli))) db.clientes.push({ fila: 100 + db.clientes.length, nombre: cli, negocio: '', whatsapp: '', correo: '', inicio: hoy, soporte: '', mensualidad: 0, estado: 'Activo', notas: '' }); };
+  if (nombre === 'registrarIngreso') { db.mov.push({ tipo: 'ingreso', fila: Date.now(), fecha: d.fecha, titulo: d.concepto, detalle: d.cliente, cliente: d.cliente, monto: d.monto, folio: (d.folio || '').toUpperCase() }); addCli(d.cliente); }
+  if (nombre === 'registrarGasto') db.mov.push({ tipo: 'gasto', fila: Date.now(), fecha: d.fecha, titulo: d.concepto, detalle: d.categoria, monto: d.monto });
+  if (nombre === 'eliminarMovimiento') db.mov = db.mov.filter(m => m.fila !== d.fila);
+  if (nombre === 'cambiarEstado') { const p = db.prospectos.find(x => String(x.fila) === String(d.fila)); if (p) { p.estado = d.estado; if (d.estado === 'Ganado') addCli(p.negocio); } }
+  if (nombre === 'registrarCotizacion') { if (db.cot.some(c => c.folio === d.folio)) return Promise.reject(new Error('Ese folio ya existe')); db.cot.push({ fila: 100 + db.cot.length, folio: d.folio, fecha: d.fecha, cliente: d.cliente, concepto: d.concepto, total: d.total, estado: d.estado }); if (d.estado === 'Aceptada') addCli(d.cliente); }
+  if (nombre === 'cambiarEstadoCotizacion') { const c = db.cot.find(x => String(x.fila) === String(d.fila)); if (c) { c.estado = d.estado; if (d.estado === 'Aceptada') addCli(c.cliente); } }
+  if (nombre === 'actualizarCliente') { const c = db.clientes.find(x => x.fila === d.fila); if (c) Object.assign(c, { negocio: d.negocio, whatsapp: d.whatsapp, correo: d.correo, soporte: d.soporte, mensualidad: parseFloat(d.mensualidad) || 0, estado: d.estado, notas: d.notas }); }
+  const ing = db.mov.filter(m => m.tipo === 'ingreso');
+  const cots = db.cot.map(c => { const pagado = ing.filter(m => m.folio === c.folio).reduce((s, m) => s + m.monto, 0); if (pagado >= c.total && c.estado === 'Aceptada') c.estado = 'Pagada'; return Object.assign({}, c, { pagado, saldo: Math.max(0, c.total - pagado) }); }).reverse();
+  const es = (c, x) => igual(x, c.nombre) || (c.negocio && igual(x, c.negocio));
+  const clientes = db.clientes.map(c => Object.assign({}, c, { pagado: ing.filter(m => es(c, m.cliente)).reduce((s, m) => s + m.monto, 0), saldo: cots.filter(x => es(c, x.cliente) && x.estado === 'Aceptada').reduce((s, x) => s + x.saldo, 0) }));
+  const meses = [];
   for (let k = 5; k >= 0; k--) {
-    const ini = new Date(hoy.getFullYear(), hoy.getMonth() - k, 1), fin = new Date(hoy.getFullYear(), hoy.getMonth() - k + 1, 1);
-    const suma = a => a.filter(x => { const d = new Date(x.fecha + 'T12:00'); return d >= ini && d < fin; }).reduce((s, x) => s + x.monto, 0);
-    meses.push({ mes: MESES[ini.getMonth()].slice(0, 3), ingresos: suma(db.ing), gastos: suma(db.gas) });
+    const ini = new Date(new Date().getFullYear(), new Date().getMonth() - k, 1), fin = new Date(ini.getFullYear(), ini.getMonth() + 1, 1);
+    const suma = t => db.mov.filter(m => m.tipo === t).filter(m => { const x = new Date(m.fecha + 'T12:00'); return x >= ini && x < fin; }).reduce((s, m) => s + m.monto, 0);
+    meses.push({ mes: MESES[ini.getMonth()].slice(0, 3), ingresos: suma('ingreso'), gastos: suma('gasto') });
   }
-  const mov = db.ing.map(x => Object.assign({ tipo: 'ingreso' }, x)).concat(db.gas.map(x => Object.assign({ tipo: 'gasto' }, x))).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const nums = db.cot.map(c => +(c.folio.match(/\d+$/) || [0])[0]);
   return Promise.resolve(JSON.parse(JSON.stringify({
-    mes: meses[5], meses, anio: {}, mensualidades: db.clientes.filter(c => c.soporte === 'Sí').reduce((s, c) => s + c.mensualidad, 0),
-    prospectos: db.prospectos, clientes: db.clientes, movimientos: mov
+    mes: meses[5], meses, mensualidades: clientes.filter(c => c.soporte === 'Sí' && c.estado === 'Activo').reduce((s, c) => s + c.mensualidad, 0),
+    porCobrar: cots.filter(c => c.estado === 'Aceptada').reduce((s, c) => s + c.saldo, 0),
+    siguienteFolio: 'COT-CZ-' + ('000' + (Math.max(1, ...nums) + 1)).slice(-4),
+    cotizaciones: cots, clientes, prospectos: db.prospectos, movimientos: db.mov.slice().sort((a, b) => b.fecha.localeCompare(a.fecha))
   })));
 }
 
