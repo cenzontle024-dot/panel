@@ -143,8 +143,8 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
   <img src="icon-192.png" alt="Logo de Cenzontle">
   <h1>Panel Cenzontle</h1>
   <p>Tus ventas, gastos, prospectos y clientes en un solo lugar.</p>
-  <div class="campo"><label for="url">Dirección de la API</label><input id="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></div>
-  <div class="campo"><label for="clave">Clave de acceso</label><input id="clave" autocomplete="off" autocapitalize="characters" placeholder="8 caracteres"></div>
+  <div class="campo"><label for="usuario">Usuario</label><input id="usuario" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+  <div class="campo"><label for="contrasena">Contraseña</label><input id="contrasena" type="password" autocomplete="current-password"></div>
   <div class="error" id="errorAcceso" role="alert"></div>
   <button class="boton" id="entrar">Entrar</button>
   <button class="boton secundario" id="verDemo">Ver demostración con datos de ejemplo</button>
@@ -243,6 +243,7 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
 <div class="aviso oculto" id="aviso" role="status"></div>
 
 <script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbyokYmvEyuhSQYRk1g-OCPanPuyRfQfOlwinBmxT9S79ATAAm-T0iES2O8GCMs24SDs/exec';
 const ESTADOS = ['Nuevo', 'Contactado', 'Propuesta enviada', 'Negociando', 'Ganado', 'Perdido'];
 const $ = id => document.getElementById(id);
 const pesos = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: n % 1 ? 2 : 0 }).format(n || 0);
@@ -253,19 +254,22 @@ let estado = { datos: null, demo: false, filtro: 'Todos', tipoHoja: 'ingreso' };
 
 function guardarLocal(k, v) { try { localStorage.setItem('cz_' + k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) {} }
 function leerLocal(k) { try { return localStorage.getItem('cz_' + k); } catch (e) { return null; } }
-function borrarLocal() { try { ['url', 'clave', 'datos'].forEach(k => localStorage.removeItem('cz_' + k)); } catch (e) {} }
+function borrarLocal() { try { ['token', 'datos', 'url', 'clave'].forEach(k => localStorage.removeItem('cz_' + k)); } catch (e) {} }
 
 function avisar(t) { const a = $('aviso'); a.textContent = t; a.classList.remove('oculto'); clearTimeout(avisar.t); avisar.t = setTimeout(() => a.classList.add('oculto'), 2600); }
 
 // ---------- conexión con la API ----------
 async function api(accion, datos) {
   if (estado.demo) return demoAccion(accion, datos);
-  const url = leerLocal('url'), clave = leerLocal('clave');
+  const token = leerLocal('token');
   let r;
-  if (accion === 'todo') r = await fetch(`${url}?accion=todo&clave=${encodeURIComponent(clave)}`);
-  else r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ clave, accion, datos }) });
+  if (accion === 'todo') r = await fetch(`${API_URL}?accion=todo&token=${encodeURIComponent(token)}`);
+  else r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ token, accion, datos }, accion === 'login' ? datos : {})) });
   const j = await r.json();
-  if (!j.ok) throw new Error(j.error || 'No se pudo completar la acción');
+  if (!j.ok) {
+    if (j.error === 'Sesión vencida' && accion !== 'login') { borrarLocal(); salirApp(); avisar('Tu sesión terminó. Vuelve a iniciar sesión.'); }
+    throw new Error(j.error || 'No se pudo completar la acción');
+  }
   return j.data;
 }
 
@@ -276,6 +280,7 @@ async function cargar() {
     if (!estado.demo) guardarLocal('datos', estado.datos);
     pintar();
   } catch (e) {
+    if (e.message === 'Sesión vencida') return;
     const prev = leerLocal('datos');
     if (prev && !estado.datos) { estado.datos = JSON.parse(prev); pintar(); }
     avisar('Sin conexión: se muestran los últimos datos guardados');
@@ -395,17 +400,23 @@ function mostrarApp(demo) {
   cargar();
 }
 $('entrar').onclick = async () => {
-  const url = $('url').value.trim(), clave = $('clave').value.trim().toUpperCase();
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) return $('errorAcceso').textContent = 'La dirección debe terminar en /exec.';
-  if (clave.length < 6) return $('errorAcceso').textContent = 'Escribe la clave de acceso.';
-  $('entrar').textContent = 'Entrando…'; $('errorAcceso').textContent = '';
-  guardarLocal('url', url); guardarLocal('clave', clave);
-  try { estado.demo = false; estado.datos = await api('todo'); guardarLocal('datos', estado.datos); mostrarApp(false); }
-  catch (e) { borrarLocal(); $('errorAcceso').textContent = e.message === 'Clave incorrecta' ? 'La clave no es correcta.' : 'No se pudo conectar. Revisa la dirección y tu internet.'; }
-  finally { $('entrar').textContent = 'Entrar'; }
+  const usuario = $('usuario').value.trim(), contrasena = $('contrasena').value;
+  if (!usuario || !contrasena) return $('errorAcceso').textContent = 'Escribe tu usuario y tu contraseña.';
+  $('entrar').textContent = 'Entrando…'; $('entrar').disabled = true; $('errorAcceso').textContent = '';
+  try {
+    estado.demo = false;
+    const s = await api('login', { usuario, contrasena });
+    guardarLocal('token', s.token); $('contrasena').value = '';
+    estado.datos = await api('todo'); guardarLocal('datos', estado.datos); mostrarApp(false);
+  } catch (e) {
+    borrarLocal();
+    $('errorAcceso').textContent = e.message === 'Usuario o contraseña incorrectos' ? 'El usuario o la contraseña no son correctos.' : 'No se pudo conectar. Revisa tu internet e inténtalo de nuevo.';
+  } finally { $('entrar').textContent = 'Entrar'; $('entrar').disabled = false; }
 };
+$('contrasena').addEventListener('keydown', e => { if (e.key === 'Enter') $('entrar').click(); });
 $('verDemo').onclick = () => mostrarApp(true);
-$('salir').onclick = () => { if (!estado.demo) borrarLocal(); estado.datos = null; $('app').classList.add('oculto'); $('acceso').classList.remove('oculto'); };
+function salirApp() { estado.datos = null; $('app').classList.add('oculto'); $('acceso').classList.remove('oculto'); }
+$('salir').onclick = () => { if (!estado.demo) borrarLocal(); salirApp(); };
 $('actualizar').onclick = cargar;
 
 // ---------- modo demostración ----------
@@ -463,8 +474,7 @@ function demoAccion(accion, datos) {
 }
 
 // ---------- arranque ----------
-$('url').value = leerLocal('url') || '';
-if (leerLocal('url') && leerLocal('clave')) mostrarApp(false);
+if (leerLocal('token')) mostrarApp(false); else borrarLocal();
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 </script>
 </body>
