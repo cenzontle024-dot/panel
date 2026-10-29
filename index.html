@@ -123,6 +123,18 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
 .aviso { position: fixed; left: 20px; right: 20px; bottom: calc(var(--bottom) + 160px); background: var(--carbon); color: var(--claro); border-radius: 14px; padding: 14px 16px; font-weight: 600; z-index: 20; text-align: center; }
 .demo { background: var(--rosa-claro); color: var(--carbon); text-align: center; font-size: 13px; font-weight: 700; padding: calc(var(--top) + 6px) 10px 6px; }
 .demo + .cabecera { padding-top: 14px; }
+
+/* ---------- pantallas grandes: la app se muestra como celular centrado ---------- */
+@media (min-width: 640px) {
+  html, body { background: #E6E0D5; }
+  #acceso, #app { max-width: 460px; margin: 0 auto; box-shadow: 0 0 0 1px var(--linea); }
+  #app { background: var(--marfil); min-height: 100vh; }
+  nav { left: 50%; right: auto; width: 460px; transform: translateX(-50%); }
+  .nuevo { right: calc(50% - 230px + 20px); }
+  .aviso { left: 50%; right: auto; width: 420px; transform: translateX(-50%); }
+  .fondo { justify-content: center; }
+  .hoja { max-width: 460px; }
+}
 </style>
 </head>
 <body>
