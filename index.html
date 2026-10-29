@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15171B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cenzontle">
+<title>Panel Cenzontle</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --carbon: #15171B; --carbon-2: #1F2228; --marfil: #F4EFE6; --papel: #FFFFFF;
+  --tinta: #15171B; --gris: #4A4F57; --gris-claro: #B5B0A7; --linea: #DDD6CA;
+  --rosa: #D6006F; --rosa-texto: #C4005F; --rosa-claro: #FF4FA3; --claro: #F1ECE3;
+  --serif: 'Libre Caslon Text', Georgia, serif; --sans: 'Libre Franklin', 'Helvetica Neue', Arial, sans-serif;
+  --top: env(safe-area-inset-top, 0px); --bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--marfil); color: var(--tinta); font-family: var(--sans); font-size: 16px; -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--rosa-claro); outline-offset: 2px; }
+.oculto { display: none !important; }
+
+/* ---------- acceso ---------- */
+#acceso { min-height: 100%; background: var(--carbon); color: var(--claro); padding: calc(var(--top) + 48px) 28px calc(var(--bottom) + 32px); display: flex; flex-direction: column; gap: 22px; }
+#acceso img { width: 88px; height: 88px; border-radius: 22px; }
+#acceso h1 { font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1.1; margin: 8px 0 0; }
+#acceso p { margin: 0; color: var(--gris-claro); line-height: 1.5; }
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo label { font-size: 14px; font-weight: 600; }
+.campo input, .campo select, .campo textarea { width: 100%; border-radius: 12px; border: 1.5px solid var(--linea); background: var(--papel); padding: 13px 14px; font-size: 17px; color: var(--tinta); }
+#acceso .campo input { background: var(--carbon-2); border-color: #343840; color: var(--claro); }
+.boton { border: 0; border-radius: 14px; padding: 15px 18px; font-weight: 700; font-size: 17px; background: var(--rosa); color: #fff; }
+.boton.secundario { background: transparent; border: 1.5px solid #4A4F57; color: var(--claro); }
+.error { color: #FF8A8A; font-weight: 600; min-height: 22px; }
+
+/* ---------- estructura ---------- */
+#app { min-height: 100%; padding-bottom: calc(var(--bottom) + 150px); }
+.cabecera { background: var(--carbon); color: var(--claro); padding: calc(var(--top) + 18px) 22px 26px; }
+.barra { display: flex; align-items: center; justify-content: space-between; }
+.marca { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 700; font-size: 20px; }
+.marca img { width: 34px; height: 34px; border-radius: 9px; }
+.icono { background: transparent; border: 0; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: var(--claro); }
+.icono svg { width: 22px; height: 22px; }
+.girando svg { animation: girar 0.9s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .girando svg { animation: none; } }
+.vista { padding: 0 20px; }
+.titulo-vista { font-family: var(--serif); font-weight: 400; font-size: 30px; margin: 24px 0 14px; }
+.nota { color: var(--gris); font-size: 14px; }
+
+/* ---------- inicio ---------- */
+.mes-actual { margin: 22px 0 2px; color: var(--gris-claro); font-size: 15px; }
+.ganancia { font-family: var(--serif); font-size: 52px; line-height: 1.05; margin: 2px 0 14px; letter-spacing: -0.5px; }
+.ganancia.negativa { color: var(--rosa-claro); }
+.duo { display: flex; gap: 26px; font-size: 15px; color: var(--gris-claro); }
+.duo b { display: block; color: var(--claro); font-size: 19px; font-weight: 600; margin-top: 2px; }
+.grafica { background: var(--papel); border-radius: 20px; margin: -6px 0 0; padding: 18px 16px 12px; border: 1px solid var(--linea); position: relative; top: 14px; }
+.grafica h3, .bloque h3 { margin: 0 0 10px; font-size: 15px; font-weight: 600; color: var(--gris); }
+.leyenda { display: flex; gap: 16px; font-size: 13px; color: var(--gris); margin-top: 4px; }
+.leyenda span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--rosa); }
+.leyenda span.g::before { background: #C9C4BB; }
+.bloque { margin-top: 34px; }
+.embudo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.etapa { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 12px; text-align: left; }
+.etapa b { display: block; font-family: var(--serif); font-size: 28px; }
+.etapa span { font-size: 13px; color: var(--gris); }
+.etapa.activa { border-color: var(--rosa); box-shadow: inset 0 0 0 1px var(--rosa); }
+.lista { background: var(--papel); border: 1px solid var(--linea); border-radius: 18px; overflow: hidden; }
+.fila { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--linea); }
+.fila:first-child { border-top: 0; }
+.fila .txt { flex: 1; min-width: 0; }
+.fila .txt b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fila .txt small { color: var(--gris); font-size: 13px; }
+.monto { font-weight: 700; white-space: nowrap; }
+.monto.ingreso { color: var(--rosa-texto); }
+.punto { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--rosa); }
+.punto.gasto { background: #9B958C; }
+.vacio { padding: 26px 18px; text-align: center; color: var(--gris); }
+.vacio .boton { margin-top: 12px; }
+
+/* ---------- prospectos ---------- */
+.filtros { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
+.filtros button { flex: none; border: 1.5px solid var(--linea); background: var(--papel); border-radius: 20px; padding: 8px 14px; font-size: 14px; font-weight: 600; }
+.filtros button[aria-pressed="true"] { background: var(--carbon); color: var(--claro); border-color: var(--carbon); }
+.prospecto { background: var(--papel); border: 1px solid var(--linea); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
+.prospecto h4 { margin: 0; font-family: var(--serif); font-size: 21px; font-weight: 400; }
+.prospecto .giro { color: var(--gris); font-size: 14px; margin-top: 2px; }
+.prospecto .urge { margin: 10px 0 12px; line-height: 1.45; }
+.acciones { display: flex; gap: 8px; }
+.acciones select { flex: 1; border-radius: 12px; border: 1.5px solid var(--linea); background: var(--marfil); padding: 10px; font-weight: 600; }
+.wa { display: inline-flex; align-items: center; gap: 6px; border-radius: 12px; padding: 10px 14px; background: #1B7A4A; color: #fff; text-decoration: none; font-weight: 700; font-size: 15px; }
+
+/* ---------- navegación y botón ---------- */
+nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--papel); border-top: 1px solid var(--linea); display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 4px calc(var(--bottom) + 6px); z-index: 5; }
+nav button { background: transparent; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; font-size: 12px; font-weight: 600; color: var(--gris); }
+nav button svg { width: 24px; height: 24px; }
+nav button[aria-current="page"] { color: var(--rosa-texto); }
+.nuevo { position: fixed; right: 20px; bottom: calc(var(--bottom) + 84px); width: 62px; height: 62px; border-radius: 50%; border: 0; background: var(--rosa); color: #fff; box-shadow: 0 8px 22px rgba(214, 0, 111, 0.35); z-index: 6; display: grid; place-items: center; }
+.nuevo svg { width: 28px; height: 28px; }
+
+/* ---------- hoja de captura ---------- */
+.fondo { position: fixed; inset: 0; background: rgba(21, 23, 27, 0.55); z-index: 10; display: flex; align-items: flex-end; }
+.hoja { width: 100%; max-height: 92%; overflow-y: auto; background: var(--marfil); border-radius: 24px 24px 0 0; padding: 18px 20px calc(var(--bottom) + 22px); animation: subir 0.22s ease-out; }
+@keyframes subir { from { transform: translateY(40px); opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .hoja { animation: none; } }
+.hoja .asa { width: 44px; height: 5px; border-radius: 3px; background: var(--linea); margin: 0 auto 14px; }
+.segmento { display: grid; grid-template-columns: 1fr 1fr; background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 4px; margin-bottom: 16px; }
+.segmento button { border: 0; border-radius: 10px; padding: 11px; font-weight: 700; background: transparent; color: var(--gris); }
+.segmento button[aria-pressed="true"] { background: var(--carbon); color: var(--claro); }
+.importe { font-family: var(--serif); font-size: 44px; border: 0; background: transparent; width: 100%; padding: 4px 0 10px; border-bottom: 2px solid var(--linea); margin-bottom: 14px; }
+.importe:focus { outline: none; border-color: var(--rosa); }
+.rejilla { display: grid; gap: 12px; }
+.rejilla .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hoja .boton { width: 100%; margin-top: 18px; }
+.aviso { position: fixed; left: 20px; right: 20px; bottom: calc(var(--bottom) + 160px); background: var(--carbon); color: var(--claro); border-radius: 14px; padding: 14px 16px; font-weight: 600; z-index: 20; text-align: center; }
+.demo { background: var(--rosa-claro); color: var(--carbon); text-align: center; font-size: 13px; font-weight: 700; padding: calc(var(--top) + 6px) 10px 6px; }
+.demo + .cabecera { padding-top: 14px; }
+</style>
+</head>
+<body>
+
+<section id="acceso">
+  <img src="icon-192.png" alt="Logo de Cenzontle">
+  <h1>Panel Cenzontle</h1>
+  <p>Tus ventas, gastos, prospectos y clientes en un solo lugar.</p>
+  <div class="campo"><label for="url">Dirección de la API</label><input id="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></div>
+  <div class="campo"><label for="clave">Clave de acceso</label><input id="clave" autocomplete="off" autocapitalize="characters" placeholder="8 caracteres"></div>
+  <div class="error" id="errorAcceso" role="alert"></div>
+  <button class="boton" id="entrar">Entrar</button>
+  <button class="boton secundario" id="verDemo">Ver demostración con datos de ejemplo</button>
+</section>
+
+<div id="app" class="oculto">
+  <div class="demo oculto" id="bandaDemo">Modo demostración: datos de ejemplo</div>
+  <header class="cabecera">
+    <div class="barra">
+      <div class="marca"><img src="icon-192.png" alt="">Cenzontle</div>
+      <div style="display: flex; gap: 2px">
+        <button class="icono" id="actualizar" aria-label="Actualizar datos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
+        <button class="icono" id="salir" aria-label="Cerrar sesión"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h10"/></svg></button>
+      </div>
+    </div>
+    <div id="cabeceraInicio">
+      <p class="mes-actual" id="mesActual">Ganancia de este mes</p>
+      <p class="ganancia" id="ganancia">$0</p>
+      <div class="duo"><div>Ingresos<b id="ingMes">$0</b></div><div>Gastos<b id="gasMes">$0</b></div><div>Mensualidades<b id="mensMes">$0</b></div></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="vista" id="v-inicio">
+      <div class="grafica">
+        <h3>Últimos 6 meses</h3>
+        <svg id="grafica" viewBox="0 0 320 150" width="100%" role="img" aria-label="Ingresos y gastos de los últimos 6 meses"></svg>
+        <div class="leyenda"><span>Ingresos</span><span class="g">Gastos</span></div>
+      </div>
+      <div class="bloque">
+        <h3>Prospectos</h3>
+        <div class="embudo" id="embudo"></div>
+      </div>
+      <div class="bloque">
+        <h3>Movimientos recientes</h3>
+        <div class="lista" id="recientes"></div>
+      </div>
+    </section>
+
+    <section class="vista oculto" id="v-prospectos">
+      <h2 class="titulo-vista">Prospectos</h2>
+      <div class="filtros" id="filtros" role="group" aria-label="Filtrar por estado"></div>
+      <div id="listaProspectos"></div>
+    </section>
+
+    <section class="vista oculto" id="v-clientes">
+      <h2 class="titulo-vista">Clientes</h2>
+      <div class="lista" id="listaClientes"></div>
+    </section>
+
+    <section class="vista oculto" id="v-movimientos">
+      <h2 class="titulo-vista">Movimientos</h2>
+      <div class="lista" id="listaMovimientos"></div>
+    </section>
+  </main>
+
+  <button class="nuevo" id="nuevo" aria-label="Registrar ingreso o gasto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+
+  <nav aria-label="Secciones">
+    <button data-v="inicio" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Inicio</button>
+    <button data-v="prospectos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>Prospectos</button>
+    <button data-v="clientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2 .8 3 3 3 6"/></svg>Clientes</button>
+    <button data-v="movimientos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg>Movimientos</button>
+  </nav>
+</div>
+
+<div class="fondo oculto" id="fondoHoja">
+  <div class="hoja" role="dialog" aria-modal="true" aria-labelledby="tituloHoja">
+    <div class="asa"></div>
+    <h2 id="tituloHoja" class="oculto">Nuevo registro</h2>
+    <div class="segmento" role="group" aria-label="Tipo de registro">
+      <button id="segIngreso" aria-pressed="true">Ingreso</button>
+      <button id="segGasto" aria-pressed="false">Gasto</button>
+    </div>
+    <label class="nota" for="monto">Monto</label>
+    <input class="importe" id="monto" inputmode="decimal" placeholder="$0.00">
+    <div class="rejilla">
+      <div class="campo" id="cCliente"><label for="cliente">Cliente</label><input id="cliente" list="clientesLista" placeholder="Nombre del cliente o negocio"><datalist id="clientesLista"></datalist></div>
+      <div class="campo"><label for="concepto">Concepto</label><input id="concepto" placeholder="Por ejemplo: anticipo del sistema"></div>
+      <div class="dos">
+        <div class="campo"><label for="fecha">Fecha</label><input id="fecha" type="date"></div>
+        <div class="campo" id="cTipo"><label for="tipo">Tipo</label><select id="tipo"><option>Anticipo</option><option>Liquidación</option><option>Mensualidad</option><option>Servicio por evento</option><option>Otro</option></select></div>
+        <div class="campo oculto" id="cCategoria"><label for="categoria">Categoría</label><select id="categoria"><option>Herramientas y suscripciones</option><option>Equipo</option><option>Internet y teléfono</option><option>Publicidad</option><option>Transporte</option><option>Insumos</option><option>Otro</option></select></div>
+      </div>
+      <div class="dos" id="cPago">
+        <div class="campo"><label for="forma">Forma de pago</label><select id="forma"><option>Transferencia</option><option>Efectivo</option><option>Otro</option></select></div>
+        <div class="campo"><label for="folio">Folio</label><input id="folio" placeholder="COT-CZ-0000"></div>
+      </div>
+      <div class="campo"><label for="notas">Notas</label><input id="notas" placeholder="Opcional"></div>
+    </div>
+    <div class="error" id="errorHoja" role="alert"></div>
+    <button class="boton" id="guardar">Guardar ingreso</button>
+  </div>
+</div>
+
+<div class="aviso oculto" id="aviso" role="status"></div>
+
+<script>
+const ESTADOS = ['Nuevo', 'Contactado', 'Propuesta enviada', 'Negociando', 'Ganado', 'Perdido'];
+const $ = id => document.getElementById(id);
+const pesos = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: n % 1 ? 2 : 0 }).format(n || 0);
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fechaCorta = s => { if (!s) return ''; const [a, m, d] = s.split('-'); return `${+d} ${MESES[+m - 1].slice(0, 3)}`; };
+let estado = { datos: null, demo: false, filtro: 'Todos', tipoHoja: 'ingreso' };
+
+function guardarLocal(k, v) { try { localStorage.setItem('cz_' + k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) {} }
+function leerLocal(k) { try { return localStorage.getItem('cz_' + k); } catch (e) { return null; } }
+function borrarLocal() { try { ['url', 'clave', 'datos'].forEach(k => localStorage.removeItem('cz_' + k)); } catch (e) {} }
+
+function avisar(t) { const a = $('aviso'); a.textContent = t; a.classList.remove('oculto'); clearTimeout(avisar.t); avisar.t = setTimeout(() => a.classList.add('oculto'), 2600); }
+
+// ---------- conexión con la API ----------
+async function api(accion, datos) {
+  if (estado.demo) return demoAccion(accion, datos);
+  const url = leerLocal('url'), clave = leerLocal('clave');
+  let r;
+  if (accion === 'todo') r = await fetch(`${url}?accion=todo&clave=${encodeURIComponent(clave)}`);
+  else r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ clave, accion, datos }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'No se pudo completar la acción');
+  return j.data;
+}
+
+async function cargar() {
+  $('actualizar').classList.add('girando');
+  try {
+    estado.datos = await api('todo');
+    if (!estado.demo) guardarLocal('datos', estado.datos);
+    pintar();
+  } catch (e) {
+    const prev = leerLocal('datos');
+    if (prev && !estado.datos) { estado.datos = JSON.parse(prev); pintar(); }
+    avisar('Sin conexión: se muestran los últimos datos guardados');
+  } finally { $('actualizar').classList.remove('girando'); }
+}
+
+// ---------- pintar vistas ----------
+function pintar() {
+  const d = estado.datos; if (!d) return;
+  const ahora = new Date();
+  $('mesActual').textContent = `Ganancia de ${MESES[ahora.getMonth()]}`;
+  const g = (d.mes.ingresos || 0) - (d.mes.gastos || 0);
+  $('ganancia').textContent = pesos(g);
+  $('ganancia').classList.toggle('negativa', g < 0);
+  $('ingMes').textContent = pesos(d.mes.ingresos); $('gasMes').textContent = pesos(d.mes.gastos); $('mensMes').textContent = pesos(d.mensualidades);
+  pintarGrafica(d.meses);
+  pintarEmbudo(d.prospectos);
+  $('recientes').innerHTML = filasMov(d.movimientos.slice(0, 5)) || vacio('Todavía no hay movimientos.', 'Registrar el primero');
+  $('listaMovimientos').innerHTML = filasMov(d.movimientos) || vacio('Todavía no hay movimientos.', 'Registrar el primero');
+  $('listaClientes').innerHTML = d.clientes.length ? d.clientes.map(c => `<div class="fila"><div class="txt"><b>${esc(c.negocio || c.nombre)}</b><small>${esc(c.negocio ? c.nombre : '')}${c.soporte === 'Sí' ? `${c.negocio ? ', ' : ''}soporte de ${pesos(c.mensualidad)} al mes` : ''}</small></div>${c.whatsapp ? `<a class="wa" href="https://wa.me/52${esc(String(c.whatsapp).replace(/\D/g, '').slice(-10))}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</div>`).join('') : vacio('Tus clientes aparecen aquí cuando marcas un prospecto como Ganado.');
+  $('clientesLista').innerHTML = d.clientes.map(c => `<option value="${esc(c.negocio || c.nombre)}">`).join('');
+  pintarProspectos();
+  document.querySelectorAll('.vacio .boton').forEach(b => b.onclick = abrirHoja);
+}
+
+function vacio(t, accion) { return `<div class="vacio">${t}${accion ? `<br><button class="boton">${accion}</button>` : ''}</div>`; }
+function filasMov(m) {
+  return m.map(x => `<div class="fila"><span class="punto ${x.tipo}"></span><div class="txt"><b>${esc(x.titulo)}</b><small>${esc(x.detalle)}, ${fechaCorta(x.fecha)}</small></div><span class="monto ${x.tipo}">${x.tipo === 'gasto' ? '−' : '+'}${pesos(x.monto)}</span></div>`).join('');
+}
+
+function pintarGrafica(meses) {
+  const W = 320, H = 150, base = 120, max = Math.max(1, ...meses.map(m => Math.max(m.ingresos, m.gastos)));
+  const ancho = W / meses.length; let s = '';
+  s += `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#DDD6CA" stroke-width="1"/>`;
+  meses.forEach((m, i) => {
+    const x = i * ancho + ancho / 2, hi = (m.ingresos / max) * 100, hg = (m.gastos / max) * 100;
+    s += `<rect x="${x - 13}" y="${base - hi}" width="12" height="${hi}" rx="3" fill="#D6006F"><title>Ingresos ${m.mes}: ${pesos(m.ingresos)}</title></rect>`;
+    s += `<rect x="${x + 1}" y="${base - hg}" width="12" height="${hg}" rx="3" fill="#C9C4BB"><title>Gastos ${m.mes}: ${pesos(m.gastos)}</title></rect>`;
+    s += `<text x="${x}" y="${base + 20}" text-anchor="middle" font-size="12" fill="${i === meses.length - 1 ? '#15171B' : '#4A4F57'}" font-weight="${i === meses.length - 1 ? 700 : 400}" font-family="Libre Franklin, Arial">${m.mes}</text>`;
+  });
+  $('grafica').innerHTML = s;
+}
+
+function pintarEmbudo(ps) {
+  const etapas = [['Nuevo', 'Nuevos'], ['Contactado', 'Contactados'], ['Propuesta enviada', 'Con propuesta'], ['Negociando', 'Negociando'], ['Ganado', 'Ganados'], ['Perdido', 'Perdidos']];
+  $('embudo').innerHTML = etapas.map(([e, t]) => `<button class="etapa" data-e="${e}"><b>${ps.filter(p => p.estado === e).length}</b><span>${t}</span></button>`).join('');
+  document.querySelectorAll('.etapa').forEach(b => b.onclick = () => { estado.filtro = b.dataset.e; ir('prospectos'); });
+}
+
+function pintarProspectos() {
+  const ps = estado.datos.prospectos;
+  $('filtros').innerHTML = ['Todos'].concat(ESTADOS).map(e => `<button aria-pressed="${estado.filtro === e}" data-e="${e}">${e}${e === 'Todos' ? '' : ` (${ps.filter(p => p.estado === e).length})`}</button>`).join('');
+  document.querySelectorAll('#filtros button').forEach(b => b.onclick = () => { estado.filtro = b.dataset.e; pintarProspectos(); });
+  const lista = ps.filter(p => estado.filtro === 'Todos' || p.estado === estado.filtro);
+  $('listaProspectos').innerHTML = lista.length ? lista.map(p => {
+    const tel = String(p.whatsapp).replace(/\D/g, '').slice(-10);
+    const msg = encodeURIComponent(`Hola ${p.nombre}, soy Rodrigo de Cenzontle. Gracias por contarnos de ${p.negocio}.`);
+    return `<article class="prospecto"><h4>${esc(p.negocio)}</h4><div class="giro">${esc(p.giro)}, ${esc(p.nombre)}, ${fechaCorta(p.fecha)}</div>${p.urge ? `<p class="urge">${esc(p.urge)}</p>` : '<p class="urge nota">Sin comentarios.</p>'}<div class="acciones"><select aria-label="Estado de ${esc(p.negocio)}" data-f="${p.fila}">${ESTADOS.map(e => `<option${e === p.estado ? ' selected' : ''}>${e}</option>`).join('')}</select>${tel ? `<a class="wa" href="https://wa.me/52${tel}?text=${msg}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</div></article>`;
+  }).join('') : `<div class="lista">${vacio(estado.filtro === 'Todos' ? 'Cuando alguien llene tu formulario de diagnóstico, aparecerá aquí.' : 'No hay prospectos en este estado.')}</div>`;
+  document.querySelectorAll('#listaProspectos select').forEach(s => s.onchange = async () => {
+    s.disabled = true;
+    try { estado.datos = await api('cambiarEstado', { fila: s.dataset.f, estado: s.value }); pintar(); avisar(s.value === 'Ganado' ? 'Marcado como ganado y agregado a Clientes' : `Estado cambiado a ${s.value}`); }
+    catch (e) { avisar(e.message); s.disabled = false; }
+  });
+}
+
+// ---------- navegación ----------
+function ir(v) {
+  ['inicio', 'prospectos', 'clientes', 'movimientos'].forEach(n => $('v-' + n).classList.toggle('oculto', n !== v));
+  $('cabeceraInicio').classList.toggle('oculto', v !== 'inicio');
+  document.querySelectorAll('nav button').forEach(b => { if (b.dataset.v === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  if (v === 'prospectos') pintarProspectos();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => { if (b.dataset.v === 'prospectos') estado.filtro = 'Todos'; ir(b.dataset.v); });
+
+// ---------- hoja de captura ----------
+function tipoHoja(t) {
+  estado.tipoHoja = t;
+  $('segIngreso').setAttribute('aria-pressed', t === 'ingreso'); $('segGasto').setAttribute('aria-pressed', t === 'gasto');
+  ['cCliente', 'cTipo', 'cPago'].forEach(id => $(id).classList.toggle('oculto', t === 'gasto'));
+  $('cCategoria').classList.toggle('oculto', t === 'ingreso');
+  $('concepto').placeholder = t === 'ingreso' ? 'Por ejemplo: anticipo del sistema' : 'Por ejemplo: plan de celular';
+  $('guardar').textContent = t === 'ingreso' ? 'Guardar ingreso' : 'Guardar gasto';
+}
+function abrirHoja() {
+  ['monto', 'cliente', 'concepto', 'folio', 'notas'].forEach(id => $(id).value = '');
+  $('fecha').value = new Date().toLocaleDateString('en-CA'); $('errorHoja').textContent = '';
+  tipoHoja('ingreso'); $('fondoHoja').classList.remove('oculto'); setTimeout(() => $('monto').focus(), 150);
+}
+function cerrarHoja() { $('fondoHoja').classList.add('oculto'); }
+$('nuevo').onclick = abrirHoja;
+$('segIngreso').onclick = () => tipoHoja('ingreso');
+$('segGasto').onclick = () => tipoHoja('gasto');
+$('fondoHoja').onclick = e => { if (e.target === $('fondoHoja')) cerrarHoja(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
+$('guardar').onclick = async () => {
+  const monto = parseFloat(String($('monto').value).replace(/[^0-9.]/g, ''));
+  const ing = estado.tipoHoja === 'ingreso';
+  if (!(monto > 0)) return $('errorHoja').textContent = 'Escribe el monto.';
+  if (ing && !$('cliente').value.trim()) return $('errorHoja').textContent = 'Escribe el cliente.';
+  if (!$('concepto').value.trim()) return $('errorHoja').textContent = 'Escribe el concepto.';
+  const datos = ing
+    ? { monto, cliente: $('cliente').value.trim(), concepto: $('concepto').value.trim(), fecha: $('fecha').value, tipo: $('tipo').value, forma: $('forma').value, folio: $('folio').value.trim(), notas: $('notas').value.trim() }
+    : { monto, concepto: $('concepto').value.trim(), fecha: $('fecha').value, categoria: $('categoria').value, notas: $('notas').value.trim() };
+  $('guardar').disabled = true; $('guardar').textContent = 'Guardando…';
+  try { estado.datos = await api(ing ? 'registrarIngreso' : 'registrarGasto', datos); pintar(); cerrarHoja(); avisar(ing ? 'Ingreso guardado' : 'Gasto guardado'); }
+  catch (e) { $('errorHoja').textContent = e.message; }
+  finally { $('guardar').disabled = false; tipoHoja(estado.tipoHoja); }
+};
+
+// ---------- acceso ----------
+function mostrarApp(demo) {
+  estado.demo = demo; $('bandaDemo').classList.toggle('oculto', !demo);
+  $('acceso').classList.add('oculto'); $('app').classList.remove('oculto'); ir('inicio');
+  const prev = !demo && leerLocal('datos'); if (prev) { estado.datos = JSON.parse(prev); pintar(); }
+  cargar();
+}
+$('entrar').onclick = async () => {
+  const url = $('url').value.trim(), clave = $('clave').value.trim().toUpperCase();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) return $('errorAcceso').textContent = 'La dirección debe terminar en /exec.';
+  if (clave.length < 6) return $('errorAcceso').textContent = 'Escribe la clave de acceso.';
+  $('entrar').textContent = 'Entrando…'; $('errorAcceso').textContent = '';
+  guardarLocal('url', url); guardarLocal('clave', clave);
+  try { estado.demo = false; estado.datos = await api('todo'); guardarLocal('datos', estado.datos); mostrarApp(false); }
+  catch (e) { borrarLocal(); $('errorAcceso').textContent = e.message === 'Clave incorrecta' ? 'La clave no es correcta.' : 'No se pudo conectar. Revisa la dirección y tu internet.'; }
+  finally { $('entrar').textContent = 'Entrar'; }
+};
+$('verDemo').onclick = () => mostrarApp(true);
+$('salir').onclick = () => { if (!estado.demo) borrarLocal(); estado.datos = null; $('app').classList.add('oculto'); $('acceso').classList.remove('oculto'); };
+$('actualizar').onclick = cargar;
+
+// ---------- modo demostración ----------
+let demoDB = null;
+function demoBase() {
+  const hoy = new Date(), f = (m, d) => new Date(hoy.getFullYear(), hoy.getMonth() - m, d).toLocaleDateString('en-CA');
+  return {
+    ing: [
+      { fecha: f(0, 3), titulo: 'Anticipo sistema de ventas', detalle: 'Café La Esquina', monto: 1600 },
+      { fecha: f(0, 8), titulo: 'Mensualidad de soporte', detalle: 'Estética Bella', monto: 450 },
+      { fecha: f(0, 12), titulo: 'Tarjeta de lealtad', detalle: 'Barbería El Patrón', monto: 1200 },
+      { fecha: f(1, 6), titulo: 'Página web', detalle: 'Dulcería Lupita', monto: 2500 },
+      { fecha: f(1, 20), titulo: 'Mensualidad de soporte', detalle: 'Estética Bella', monto: 450 },
+      { fecha: f(2, 9), titulo: 'Liquidación de agenda', detalle: 'Estética Bella', monto: 1800 },
+      { fecha: f(3, 14), titulo: 'Logo e identidad', detalle: 'Dulcería Lupita', monto: 1200 },
+      { fecha: f(4, 2), titulo: 'Catálogo en línea', detalle: 'Ferretería Hidalgo', monto: 900 }
+    ],
+    gas: [
+      { fecha: f(0, 2), titulo: 'Plan de celular', detalle: 'Internet y teléfono', monto: 300 },
+      { fecha: f(0, 10), titulo: 'Papel para etiquetas', detalle: 'Insumos', monto: 180 },
+      { fecha: f(1, 2), titulo: 'Plan de celular', detalle: 'Internet y teléfono', monto: 300 },
+      { fecha: f(2, 2), titulo: 'Publicidad en Instagram', detalle: 'Publicidad', monto: 250 },
+      { fecha: f(3, 2), titulo: 'Plan de celular', detalle: 'Internet y teléfono', monto: 300 }
+    ],
+    clientes: [
+      { nombre: 'Laura M.', negocio: 'Estética Bella', whatsapp: '', soporte: 'Sí', mensualidad: 450, estado: 'Activo' },
+      { nombre: 'Guadalupe R.', negocio: 'Dulcería Lupita', whatsapp: '', soporte: 'No', mensualidad: 0, estado: 'Activo' },
+      { nombre: 'Andrés T.', negocio: 'Barbería El Patrón', whatsapp: '', soporte: 'Sí', mensualidad: 350, estado: 'Activo' }
+    ],
+    prospectos: [
+      { fila: 5, fecha: f(0, 14), negocio: 'Taquería Don Beto', nombre: 'Alberto', giro: 'Taquería', whatsapp: '', urge: 'Que mis clientes puedan ver el menú y pedir por WhatsApp.', estado: 'Nuevo' },
+      { fila: 4, fecha: f(0, 11), negocio: 'Consultorio Dental Sonríe', nombre: 'Dra. Paola', giro: 'Consultorio dental', whatsapp: '', urge: 'Recordatorios de cita para que no falten los pacientes.', estado: 'Contactado' },
+      { fila: 3, fecha: f(0, 7), negocio: 'Café La Esquina', nombre: 'Jesús', giro: 'Cafetería', whatsapp: '', urge: 'El control de ingresos y egresos de mis dos sucursales.', estado: 'Ganado' },
+      { fila: 2, fecha: f(0, 4), negocio: 'Papelería Escolar', nombre: 'Marta', giro: 'Papelería', whatsapp: '', urge: 'Saber qué tengo en existencia.', estado: 'Propuesta enviada' }
+    ]
+  };
+}
+function demoAccion(accion, datos) {
+  if (!demoDB) demoDB = demoBase();
+  const db = demoDB;
+  if (accion === 'registrarIngreso') db.ing.push({ fecha: datos.fecha, titulo: datos.concepto, detalle: datos.cliente, monto: datos.monto });
+  if (accion === 'registrarGasto') db.gas.push({ fecha: datos.fecha, titulo: datos.concepto, detalle: datos.categoria, monto: datos.monto });
+  if (accion === 'cambiarEstado') { const p = db.prospectos.find(x => String(x.fila) === String(datos.fila)); if (p) { p.estado = datos.estado; if (datos.estado === 'Ganado' && !db.clientes.some(c => c.negocio === p.negocio)) db.clientes.push({ nombre: p.nombre, negocio: p.negocio, whatsapp: '', soporte: '', mensualidad: 0, estado: 'Activo' }); } }
+  const hoy = new Date(), meses = [];
+  for (let k = 5; k >= 0; k--) {
+    const ini = new Date(hoy.getFullYear(), hoy.getMonth() - k, 1), fin = new Date(hoy.getFullYear(), hoy.getMonth() - k + 1, 1);
+    const suma = a => a.filter(x => { const d = new Date(x.fecha + 'T12:00'); return d >= ini && d < fin; }).reduce((s, x) => s + x.monto, 0);
+    meses.push({ mes: MESES[ini.getMonth()].slice(0, 3), ingresos: suma(db.ing), gastos: suma(db.gas) });
+  }
+  const mov = db.ing.map(x => Object.assign({ tipo: 'ingreso' }, x)).concat(db.gas.map(x => Object.assign({ tipo: 'gasto' }, x))).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  return Promise.resolve(JSON.parse(JSON.stringify({
+    mes: meses[5], meses, anio: {}, mensualidades: db.clientes.filter(c => c.soporte === 'Sí').reduce((s, c) => s + c.mensualidad, 0),
+    prospectos: db.prospectos, clientes: db.clientes, movimientos: mov
+  })));
+}
+
+// ---------- arranque ----------
+$('url').value = leerLocal('url') || '';
+if (leerLocal('url') && leerLocal('clave')) mostrarApp(false);
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>
