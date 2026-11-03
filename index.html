@@ -445,7 +445,7 @@ function vCobros() {
 const listaMeses = ms => ms.length > 1 ? ms.slice(0, -1).join(', ') + ' y ' + ms[ms.length - 1] : (ms[0] || '');
 function tarjetaMens(m) {
   const n = m.meses.length;
-  return `<article class="cotizacion"><div class="cab"><h4>${esc(nombreDe(m.negocio))}</h4><span class="folio">Soporte mensual</span></div><div class="giro nota">Debe ${n} ${n === 1 ? 'mes' : 'meses'}: ${esc(listaMeses(m.meses))}${m.folio ? `, acordado en ${esc(m.folio)}` : ''}</div><div class="cifras" style="margin-top: 10px"><span>${pesos(m.mensualidad)} al mes</span><span>Total <b>${pesos(m.total)}</b></span></div><div class="acciones" style="margin-top: 12px"><button class="boton chico claro" data-mens="${esc(m.negocio.ID)}" data-n="1" style="flex: 1">Registrar 1 mes</button>${n > 1 ? `<button class="boton chico" data-mens="${esc(m.negocio.ID)}" data-n="${n}" style="flex: 1">Registrar ${n} meses</button>` : ''}</div></article>`;
+  return `<article class="cotizacion"><div class="cab"><h4>${esc(nombreDe(m.negocio))}</h4><span class="folio">Soporte mensual</span></div><div class="giro nota">Debe ${n} ${n === 1 ? 'mes' : 'meses'}: ${esc(listaMeses(m.meses))}${m.folio ? `, acordado en ${esc(m.folio)}` : ''}</div><div class="cifras" style="margin-top: 10px"><span>${pesos(m.mensualidad)} al mes</span><span>Total <b>${pesos(m.total)}</b></span></div><div class="acciones" style="margin-top: 12px">${tel10(m.negocio.WhatsApp) ? `<button class="boton chico claro" data-recordar="${esc(m.negocio.ID)}" aria-label="Recordar por WhatsApp" style="flex: none">${I.wa}</button>` : ''}<button class="boton chico claro" data-mens="${esc(m.negocio.ID)}" data-n="1" style="flex: 1">Registrar 1 mes</button>${n > 1 ? `<button class="boton chico" data-mens="${esc(m.negocio.ID)}" data-n="${n}" style="flex: 1">Registrar ${n} meses</button>` : ''}</div></article>`;
 }
 function tarjetaCot(c) {
   const pct = c.total ? Math.min(100, Math.round(c.pagado / c.total * 100)) : 0;
@@ -650,6 +650,7 @@ function cotizador(n) {
     <div id="it${k}" style="margin-top: 10px"></div><button class="boton claro chico" data-addit="${k}" style="margin-top: 4px">+ Concepto</button>
     <div class="total-c"><span>Implementación</span><span id="tot${k}">$0</span></div>${campo('om' + k, 'Soporte mensual opcional (MXN)', '', 'inputmode="decimal" placeholder="0"')}</div>`;
   abrirHoja(`Cotización para ${esc(nombreDe(n))}`, `<p class="nota" style="margin-bottom: 10px">${n.Necesidad ? `Necesita: ${esc(n.Necesidad)}. ` : ''}${n.Presupuesto ? `Presupuesto: ${esc(n.Presupuesto)}.` : ''}</p>
+    <button class="boton marca" id="sugerir" style="width: 100%; margin-bottom: 12px">Sugerir opciones según su diagnóstico</button><p class="nota" id="sugNota" style="margin: -4px 0 12px"></p>
     ${opHTML('A', 'Esencial')}${opHTML('B', 'Completa')}<div class="dos">${campo('cVig', 'Vigencia (días)', '15', 'inputmode="numeric"')}${campo('cNot', 'Notas', '')}</div>`, async () => {
     const leer = k => ({ nombre: val('on' + k), mensualidad: num(val('om' + k)), items: [...document.querySelectorAll(`#it${k} .item-c`)].map(r => ({ s: r.querySelector('.is').value.trim(), c: num(r.querySelector('.ic').value) || 1, p: num(r.querySelector('.ip').value) })).filter(i => i.s && i.p > 0) });
     const ops = ['A', 'B'].map(leer).filter(o => o.items.length);
@@ -669,6 +670,12 @@ function cotizador(n) {
   $('hoja').insertAdjacentHTML('beforeend', `<datalist id="catDL">${cat.map(x => `<option value="${esc(x.s)}">`).join('')}</datalist>`);
   fila('A', {}); fila('B', {}); fila('B', {});
   document.querySelectorAll('[data-addit]').forEach(b => b.onclick = () => fila(b.dataset.addit, {}));
+  $('sugerir').onclick = () => {
+    const sug = sugerirOpciones(n, cat);
+    if (!sug) { $('sugNota').textContent = 'Este negocio no tiene diagnóstico del formulario; arma las opciones a mano o pídeme ayuda.'; return; }
+    ['A', 'B'].forEach((k, i) => { $('it' + k).innerHTML = ''; sug.opciones[i].items.forEach(it => fila(k, it)); $('on' + k).value = sug.opciones[i].nombre; $('om' + k).value = sug.opciones[i].mensualidad || ''; });
+    sumar(); $('sugNota').textContent = sug.razon;
+  };
 }
 function listoParaCompartir(titulo, b64, nombre, texto, n) {
   abrirHoja(titulo, `<p class="nota">Se guardó en su expediente de Drive.</p><div class="pila" style="margin-top: 14px">
@@ -684,7 +691,7 @@ async function aceptarCot(folio, op) {
   if (!confirm(`¿Registrar que ${nombreDe(n)} aceptó la opción ${op} por ${pesos(totalOpcion(o))}?`)) return;
   const filas = [{ tabla: 'Cotizaciones', fila: { Folio: folio, Estado: 'Aceptada', 'Opción elegida': op, 'Total aceptado': totalOpcion(o), Avance: 0, 'Bitácora': [{ e: 0, f: hoyISO(), n: '' }] } }];
   const neg = { ID: n.ID, Estado: 'Ganado' };
-  if (num(o.mensualidad) > 0) { const h = new Date(); Object.assign(neg, { Soporte: 'Sí', Mensualidad: num(o.mensualidad), 'Folio soporte': folio, 'Inicio soporte': new Date(h.getFullYear(), h.getMonth() + 1, 1).toLocaleDateString('en-CA') }); }
+  if (num(o.mensualidad) > 0) Object.assign(neg, { Soporte: 'Sí', Mensualidad: num(o.mensualidad), 'Folio soporte': folio, 'Inicio soporte': '', 'Fin soporte': '' });  // empieza a contar al entregar
   filas.push({ tabla: 'Negocios', fila: neg });
   await escribir('guardarVarios', { filas });
   const p = await escribir('enlacePortal', { negocioId: n.ID }, '¡Propuesta aceptada!');
@@ -695,11 +702,98 @@ async function aceptarCot(folio, op) {
 }
 function avanzar(folio) {
   const c = estado.C.cots.find(x => x.Folio === folio), sig = c.avance + 1;
+  if (sig === estado.C.etapas.length - 1) return entregar(c);
   abrirHoja(`Avanzar a: ${esc(estado.C.etapas[sig])}`, campo('avNota', 'Nota para el cliente (opcional)', '', 'placeholder="Por ejemplo: ya está lista la primera versión"'), async () => {
     await escribir('guardar', { tabla: 'Cotizaciones', fila: { Folio: folio, Avance: sig, 'Bitácora': c.bitacora.concat([{ e: sig, f: hoyISO(), n: val('avNota') }]) } }, 'Avance actualizado; tu cliente ya lo ve en su portal');
     cerrarHoja();
   });
 }
+// ---------- sugerencia de opciones (reglas, sin costo) ----------
+const AREAS = ['Ventas e inventario', 'Citas y reservaciones', 'Atención y seguimiento de clientes', 'Cobros y pagos', 'Que me encuentren en internet', 'Imagen y logo', 'Que mis clientes regresen'];
+function sugerirOpciones(n, cat) {
+  const d = json(n['Diagnóstico'], null); if (!d) return null;
+  const r = t => String(d[t] || ''), si = t => r(t) === 'Sí', tiene = (t, x) => r(t).includes(x);
+  const precio = s => { const m = cat.find(x => x.s === s); return m ? num(m.p) : 0; };
+  const it = s => ({ s, c: 1, p: precio(s) });
+  const areas = AREAS.filter(a => r(`¿Te gustaría mejorar: ${a.toLowerCase()}?`) === 'Sí');
+  const urg = AREAS.includes(r('¿Qué es lo más urgente para ti?')) ? r('¿Qué es lo más urgente para ti?') : (areas[0] || '');
+  if (!areas.length && !urg) return null;
+  const S = {
+    'Ventas e inventario': () => { const x = [it('Sistema de ventas e inventario')]; if (si('¿Te gustaría poner etiquetas con código a tus productos?')) x.push(it('Generador de etiquetas QR')); if (/200 a 1,000|Más de 1,000/.test(r('¿Cuántos productos distintos manejas?'))) x.push(it('Carga inicial de productos')); return x; },
+    'Citas y reservaciones': () => { const x = [it('Agenda de citas con recordatorios')]; if (si('¿Te gustaría que tus clientes reserven solos en línea?')) x.push(it('Reservaciones en línea')); return x; },
+    'Atención y seguimiento de clientes': () => { const x = []; if (si('¿Te gustaría que tus clientes vean el avance de su servicio o pedido con un enlace?')) x.push(it('Seguimiento de servicio con enlace para clientes')); if (si('¿Te gustaría guardar el historial de cada cliente?') || !x.length) x.push(it('Registro de clientes e historial')); return x; },
+    'Cobros y pagos': () => si('¿Das crédito o cobras en abonos?') ? [it('Control de cobros y abonos')] : [it('Cobros con código QR')],
+    'Que me encuentren en internet': () => { const q = '¿Qué te gustaría tener?', x = []; if (tiene(q, 'Página web')) x.push(it('Página web y Google Maps')); else if (tiene(q, 'Google Maps')) x.push(it('Perfil en Google Maps')); if (tiene(q, 'Catálogo')) x.push(it('Catálogo en línea')); if (tiene(q, 'Menú')) x.push(it('Menú digital con código QR')); return x.length ? x : [it('Perfil en Google Maps')]; },
+    'Imagen y logo': () => { const q = '¿Qué necesitas?', x = []; if (tiene(q, 'Logo') || /cambiarlo|^No$/.test(r('¿Tu negocio tiene logo?'))) x.push(it('Identidad gráfica (logo)')); if (tiene(q, 'redes')) x.push(it('Diseños para redes sociales')); if (/Tarjetas|Etiquetas|Letrero/.test(r(q))) x.push(it('Tarjetas y etiquetas impresas (diseño)')); return x.length ? x : [it('Identidad gráfica (logo)')]; },
+    'Que mis clientes regresen': () => [it('Tarjeta de lealtad digital')]
+  };
+  const extras = []; const suc = r('¿Cuántas sucursales tiene?'); if (suc === '2') extras.push(it('Configuración por sucursal adicional')); if (suc === '3 o más') extras.push(Object.assign(it('Configuración por sucursal adicional'), { c: 2 }));
+  const tope = { 'Menos de $2,000': 2000, '$2,000 a $5,000': 5000, '$5,000 a $10,000': 10000 }[r('¿Tienes un presupuesto en mente para arrancar?') || n.Presupuesto] || 0;
+  const suma = x => x.reduce((s, i) => s + i.c * i.p, 0);
+  const completa = (S[urg] ? S[urg]() : []).concat(extras);
+  let A = completa.slice();
+  while (tope && suma(A) > tope && A.length > 1) A.pop();  // la opción A cabe en su presupuesto
+  const Bset = completa.slice(); areas.filter(a => a !== urg).forEach(a => S[a]().forEach(x => { if (!Bset.some(y => y.s === x.s)) Bset.push(x); }));
+  if (Bset.length === A.length && !A.some(x => x.s === 'Capacitación adicional (1 hora)')) Bset.push(it('Capacitación adicional (1 hora)'));
+  const razon = `Opción A: lo más urgente (${urg.toLowerCase()})${tope ? `, cuidando su presupuesto de ${r('¿Tienes un presupuesto en mente para arrancar?') || n.Presupuesto}` : ''}. Opción B: suma ${areas.length > 1 ? 'las demás áreas que eligió' : 'capacitación extra'} y soporte mensual. Revisa los precios antes de generar.`;
+  return { razon, opciones: [{ nombre: 'Esencial', items: A, mensualidad: 0 }, { nombre: 'Completa', items: Bset, mensualidad: 450 }] };
+}
+// ---------- entrega: requiere saldo liquidado; genera acta y, si aplica, acuerdo de soporte ----------
+function entregar(c) {
+  const n = c.negocio;
+  if (c.saldo > 0) {
+    abrirHoja('Falta liquidar', `<p>Para marcar <b>Entregado</b>, primero registra el pago del saldo: <b>${pesos(c.saldo)}</b>.</p>`, () => { cerrarHoja(); formPago(n, { folio: c.Folio }); }, 'Registrar pago');
+    return;
+  }
+  const op = (c.datos.opciones || [])['AB'.indexOf(c['Opción elegida'])] || { items: [] };
+  const sop = n.Soporte === 'Sí' && num(n.Mensualidad) > 0;
+  abrirHoja('Entrega del proyecto', `<div class="rejilla"><div class="campo"><label for="eTrab">Trabajos entregados</label><textarea id="eTrab">${esc(op.items.map(i => i.s).join(', '))}</textarea></div>
+    <div class="dos"><div class="campo"><label for="eFecha">Fecha de entrega</label><input id="eFecha" type="date" value="${hoyISO()}"></div>${campo('eGar', 'Garantía (días)', '30', 'inputmode="numeric"')}</div>
+    ${selector('eCap', 'Capacitación', ['Realizada', 'Pendiente', 'No aplica'], 'Realizada')}${campo('eObs', 'Observaciones', '')}
+    ${sop ? `<p class="nota">También se generará el <b>acuerdo de soporte mensual</b> por ${pesos(num(n.Mensualidad))} al mes, y sus mensualidades empezarán a contar a partir del mes siguiente.</p>` : ''}</div>`, async () => {
+    const f = val('eFecha') || hoyISO(), dias = num(val('eGar')) || 30, gar = new Date(f + 'T12:00'); gar.setDate(gar.getDate() + dias);
+    const garISO = gar.toLocaleDateString('en-CA'), datosEnt = { trabajos: val('eTrab'), fecha: f, garantia: garISO, dias, capacitacion: val('eCap'), obs: val('eObs') };
+    const sig = estado.C.etapas.length - 1;
+    await escribir('guardar', { tabla: 'Cotizaciones', fila: { Folio: c.Folio, Avance: sig, Estado: 'Pagada', 'Bitácora': c.bitacora.concat([{ e: sig, f, n: `Garantía hasta el ${fechaCorta(garISO)}` }]) } });
+    const acta = await pdfActa(c, n, datosEnt), b1 = b64DeDoc(acta), nom1 = `Acta de entrega ${c.Folio} ${nombreDe(n)}.pdf`;
+    await escribir('subirArchivo', { negocioId: n.ID, nombre: nom1, base64: b1, mime: 'application/pdf', tipo: 'Acta de entrega', visible: true });
+    if (sop) {
+      const ini = new Date(f + 'T12:00'); const iniISO = new Date(ini.getFullYear(), ini.getMonth() + 1, 1).toLocaleDateString('en-CA');
+      await escribir('guardar', { tabla: 'Negocios', fila: { ID: n.ID, 'Inicio soporte': iniISO, 'Fin soporte': '' } });
+      const ac = await pdfAcuerdoSoporte(estado.C.porId[n.ID], c, iniISO), b2 = b64DeDoc(ac), nom2 = `Acuerdo de soporte mensual ${nombreDe(n)}.pdf`;
+      await escribir('subirArchivo', { negocioId: n.ID, nombre: nom2, base64: b2, mime: 'application/pdf', tipo: 'Acuerdo de soporte', visible: true });
+    }
+    const nn = estado.C.porId[n.ID];
+    listoParaCompartir('¡Proyecto entregado!', b1, nom1, `Hola ${(nn.Contacto || '').split(' ')[0]}, ¡tu proyecto está entregado! Te comparto el acta de entrega${sop ? ' y el acuerdo de soporte mensual' : ''}. También están en tu portal: ${nn['Enlace portal'] || ''}`, nn);
+  }, 'Entregar y generar documentos');
+}
+async function pdfActa(c, n, e) {
+  const doc = await pdfBase('Acta de entrega', c.Folio, e.fecha); let y = 60;
+  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.text('Cliente', 16, y); doc.setFont('helvetica', 'normal'); doc.text([nombreDe(n), n.Contacto && n.Negocio ? n.Contacto : ''].filter(Boolean), 16, y + 6);
+  y += 22; doc.setFont('helvetica', 'bold'); doc.text('Trabajos entregados', 16, y); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  const l = doc.splitTextToSize(e.trabajos || '', 182); doc.text(l, 16, y + 6); y += l.length * 5 + 14;
+  doc.text([`Cotización: ${c.Folio}, opción ${c['Opción elegida']}  ·  Importe: ${pesos(c.total)} (liquidado)`, `Fecha de entrega: ${fechaCorta(e.fecha)}`, `Capacitación: ${e.capacitacion}`, `Garantía: ${e.dias} días naturales, hasta el ${fechaCorta(e.garantia)}, para corregir fallas dentro del alcance entregado.`, e.obs ? `Observaciones: ${e.obs}` : ''].filter(Boolean), 16, y);
+  y += 34; const t = doc.splitTextToSize('El cliente recibe los trabajos descritos funcionando y a su entera satisfacción. A partir de esta fecha, el cliente es titular de su información y sus archivos. Cualquier cambio o función nueva fuera del alcance se cotiza por separado.', 182); doc.text(t, 16, y); y += t.length * 5 + 24;
+  doc.setDrawColor(21, 23, 27); doc.line(16, y, 96, y); doc.line(120, y, 200, y); doc.setFontSize(9);
+  doc.text(['Entrega: Jesús Rodrigo García Monroy', 'Cenzontle'], 16, y + 5); doc.text(['Recibe de conformidad', `${n.Contacto || ''}, ${nombreDe(n)}`], 120, y + 5);
+  piePdf(doc); return doc;
+}
+async function pdfAcuerdoSoporte(n, c, ini) {
+  const doc = await pdfBase('Acuerdo de soporte mensual', n['Folio soporte'] || c.Folio, hoyISO()); let y = 60;
+  doc.setFontSize(10); const p = s => { const l = doc.splitTextToSize(s, 182); doc.text(l, 16, y); y += l.length * 5 + 3; };
+  doc.setFont('helvetica', 'bold'); p(`Cliente: ${nombreDe(n)}${n.Contacto && n.Negocio ? `, ${n.Contacto}` : ''}`); doc.setFont('helvetica', 'normal');
+  p(`Mensualidad: ${pesos(num(n.Mensualidad))} al mes, a partir de ${fechaCorta(ini)}. Relacionado con la cotización ${c.Folio}.`); y += 3;
+  doc.setFont('helvetica', 'bold'); p('Incluye'); doc.setFont('helvetica', 'normal');
+  ['Atención de dudas por WhatsApp de lunes a sábado.', 'Hasta 4 ajustes menores al mes (textos, categorías, campos o configuraciones sencillas).', 'Corrección de fallas del sistema entregado.', 'Revisión mensual y respaldo de la información.'].forEach(t => p('•  ' + t)); y += 3;
+  doc.setFont('helvetica', 'bold'); p('No incluye'); doc.setFont('helvetica', 'normal');
+  ['Funciones o módulos nuevos, que se cotizan por separado.', 'Licencias de pago, equipo o servicios de terceros.', 'Captura de información del negocio.'].forEach(t => p('•  ' + t)); y += 3;
+  doc.setFont('helvetica', 'bold'); p('Condiciones'); doc.setFont('helvetica', 'normal');
+  ['El pago es por adelantado, dentro de los primeros 5 días de cada mes; al pagar, el cliente puede avisar desde su portal para recibir su recibo.', 'Si una mensualidad no se paga, el soporte se pausa hasta regularizarse; el sistema entregado sigue funcionando.', 'Cualquiera de las partes puede cancelar el soporte con un mes de aviso; se cobra el mes de aviso y después deja de generarse la mensualidad.', 'El precio puede actualizarse avisando con al menos un mes de anticipación.', 'Este acuerdo no incluye la emisión de factura.'].forEach(t => p('•  ' + t));
+  y += 18; doc.setDrawColor(21, 23, 27); doc.line(16, y, 96, y); doc.line(120, y, 200, y); doc.setFontSize(9);
+  doc.text(['Jesús Rodrigo García Monroy', 'Cenzontle'], 16, y + 5); doc.text(['Acepta', `${n.Contacto || ''}, ${nombreDe(n)}`], 120, y + 5);
+  piePdf(doc); return doc;
+}
+
 // ---------- pagos y recibos ----------
 function formPago(n, pre) {
   pre = pre || {}; n = n || null;
@@ -777,6 +871,9 @@ function enlazar() {
   q('[data-fc]').forEach(b => { if (!b.dataset.ir) b.onclick = () => { estado.filtroC = b.dataset.fc; pintar(); }; });
   q('[data-neg]').forEach(b => { b.onclick = () => ir('ficha', b.dataset.neg); b.onkeydown = e => { if (e.key === 'Enter') ir('ficha', b.dataset.neg); }; });
   q('[data-mens]').forEach(b => b.onclick = () => pagarMens(b.dataset.mens, +b.dataset.n));
+  q('[data-recordar]').forEach(b => b.onclick = async () => { const m = estado.C.mens.find(x => x.negocio.ID === b.dataset.recordar), n = m.negocio;
+    let enl = n['Enlace portal']; if (!enl) { try { enl = (await escribir('enlacePortal', { negocioId: n.ID })).enlace; } catch (e) {} }
+    abrirWA(n.WhatsApp, `Hola ${(n.Contacto || '').split(' ')[0]}, te saluda Rodrigo de Cenzontle. Te recordamos tu mensualidad de soporte de ${listaMeses(m.meses)} por ${pesos(m.total)}. Puedes ver tu estado de cuenta y avisarnos de tu pago aquí: ${enl || ''}`); });
   q('[data-pagar]').forEach(b => b.onclick = () => { const c = estado.C.cots.find(x => x.Folio === b.dataset.pagar); formPago(c.negocio, { folio: c.Folio }); });
   q('[data-confirmar]').forEach(b => b.onclick = () => confirmarPago(b.dataset.confirmar));
   q('[data-rechazar]').forEach(b => b.onclick = async () => { if (confirm('¿Eliminar este aviso de pago? Avísale al cliente que no lo encontraste.')) await escribir('eliminar', { tabla: 'Pagos', id: b.dataset.rechazar }, 'Aviso eliminado'); });
@@ -871,7 +968,7 @@ function demoSemilla() {
       { ID: 'CZ-0002', Alta: f(1, 4), Negocio: 'Café La Esquina', Contacto: 'Jesús Ortiz', WhatsApp: '5511223344', Giro: 'Cafetería', Necesidad: 'Control de ingresos de dos sucursales', Presupuesto: 'Menos de $2,000', Origen: 'Formulario', Estado: 'Ganado' },
       { ID: 'CZ-0003', Alta: f(0, 2), Negocio: 'Taquería Don Beto', Contacto: 'Alberto Ruiz', WhatsApp: '5599887766', Giro: 'Taquería', Necesidad: 'Menú con QR y pedidos por WhatsApp', Origen: 'Manual', Estado: 'Propuesta enviada' },
       { ID: 'CZ-0004', Alta: f(0, 3), Negocio: 'Consultorio Dental Sonríe', Contacto: 'Dra. Paola Ríos', WhatsApp: '5544332211', Giro: 'Consultorio dental', Necesidad: 'Recordatorios de citas', Origen: 'Formulario', Estado: 'Contactado' },
-      { ID: 'CZ-0005', Alta: f(0, 1), Negocio: 'Papelería Escolar', Contacto: 'Marta López', WhatsApp: '5533221100', Giro: 'Papelería', Necesidad: 'Saber qué tengo en existencia', Origen: 'Formulario', Estado: 'Nuevo' }
+      { ID: 'CZ-0005', Alta: f(0, 1), Negocio: 'Papelería Escolar', Contacto: 'Marta López', WhatsApp: '5533221100', Giro: 'Papelería', Necesidad: 'Saber qué tengo en existencia', Origen: 'Formulario', Estado: 'Nuevo', Presupuesto: '$2,000 a $5,000', 'Diagnóstico': "{\"¿Te gustaría mejorar: ventas e inventario?\": \"Sí\", \"¿Cuántos productos distintos manejas?\": \"200 a 1,000\", \"¿Te gustaría poner etiquetas con código a tus productos?\": \"Sí\", \"¿Te gustaría mejorar: que me encuentren en internet?\": \"Sí\", \"¿Qué te gustaría tener?\": \"Aparecer en Google Maps, Catálogo en línea\", \"¿Te gustaría mejorar: que mis clientes regresen?\": \"Sí\", \"¿Cuántas sucursales tiene?\": \"1\", \"¿Qué es lo más urgente para ti?\": \"Ventas e inventario\", \"¿Tienes un presupuesto en mente para arrancar?\": \"$2,000 a $5,000\"}" }
     ],
     cotizaciones: [
       { Folio: 'COT-CZ-0002', Fecha: f(3, 5), 'Negocio ID': 'CZ-0001', Estado: 'Pagada', 'Opción elegida': 'B', Datos: ops([{ s: 'Agenda de citas', c: 1, p: 1500 }], [{ s: 'Agenda de citas con recordatorios', c: 1, p: 1800 }], 0, 450), 'Total aceptado': 1800, Avance: 5, 'Bitácora': JSON.stringify([{ e: 0, f: f(3, 6) }, { e: 1, f: f(3, 7) }, { e: 5, f: f(2, 1), n: 'Entregado y capacitado' }]) },
@@ -891,7 +988,7 @@ function demoSemilla() {
     ajustes: {
       plantillas: { 'Nuevo': 'Hola {contacto}, soy Rodrigo de Cenzontle. Gracias por contarnos de {negocio}. Te comparto un ejemplo de lo que hacemos: {video}', 'Contactado': 'Hola {contacto}, ¿te parece si platicamos 15 minutos sobre {negocio}?', 'Propuesta enviada': 'Hola {contacto}, te comparto la propuesta para {negocio}, con dos opciones.', 'Negociando': 'Hola {contacto}, ¿pudiste revisar la propuesta?', 'Ganado': '¡Bienvenido a Cenzontle, {contacto}! Aquí puedes ver tu proyecto y tus documentos: {portal}', 'Perdido': 'Hola {contacto}, gracias por tu tiempo. Aquí estaré si quieres retomarlo.' },
       video: 'https://www.instagram.com/somoscenzontle/', pago: { banco: 'Banco de ejemplo', titular: 'Jesús Rodrigo García Monroy', clabe: '000000000000000000', nota: 'Al pagar, avísanos desde tu portal.' },
-      catalogo: [{ s: 'Sistema de ventas e inventario', p: 3500 }, { s: 'Agenda de citas con recordatorios', p: 2000 }, { s: 'Catálogo en línea', p: 900 }, { s: 'Generador de etiquetas QR', p: 1000 }, { s: 'Tarjeta de lealtad digital', p: 1200 }, { s: 'Página web y Google Maps', p: 2500 }, { s: 'Identidad gráfica (logo)', p: 1200 }, { s: 'Control de ingresos y gastos', p: 1800 }],
+      catalogo: [{ s: 'Sistema de ventas e inventario', p: 3500 }, { s: 'Generador de etiquetas QR', p: 1000 }, { s: 'Carga inicial de productos', p: 800 }, { s: 'Agenda de citas con recordatorios', p: 2000 }, { s: 'Reservaciones en línea', p: 1400 }, { s: 'Seguimiento de servicio con enlace para clientes', p: 2500 }, { s: 'Registro de clientes e historial', p: 1200 }, { s: 'Control de cobros y abonos', p: 1500 }, { s: 'Cobros con código QR', p: 600 }, { s: 'Página web y Google Maps', p: 2500 }, { s: 'Perfil en Google Maps', p: 600 }, { s: 'Catálogo en línea', p: 900 }, { s: 'Menú digital con código QR', p: 900 }, { s: 'Identidad gráfica (logo)', p: 1200 }, { s: 'Diseños para redes sociales', p: 800 }, { s: 'Tarjetas y etiquetas impresas (diseño)', p: 600 }, { s: 'Tarjeta de lealtad digital', p: 1200 }, { s: 'Control de ingresos y gastos', p: 1800 }, { s: 'Configuración por sucursal adicional', p: 500 }, { s: 'Capacitación adicional (1 hora)', p: 400 }],
       etapas: ['Propuesta aceptada', 'Anticipo recibido', 'En desarrollo', 'Revisión contigo', 'Capacitación', 'Entregado']
     }
   };
