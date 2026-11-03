@@ -867,7 +867,7 @@ function demoSemilla() {
   const ops = (a, b, ma, mb) => JSON.stringify({ opciones: [{ nombre: 'Esencial', items: a, mensualidad: ma }, { nombre: 'Completa', items: b, mensualidad: mb }], vigencia: 15 });
   return {
     negocios: [
-      { ID: 'CZ-0001', Alta: f(3, 2), Negocio: 'Estética Bella', Contacto: 'Laura Méndez', WhatsApp: '5512345678', Correo: 'laura@esteticabella.mx', Giro: 'Estética', Necesidad: 'Agenda con recordatorios', Origen: 'Formulario', Estado: 'Ganado', 'Código portal': 'DEMO0001', 'Enlace portal': 'https://is.gd/demo-cz', Soporte: 'Sí', Mensualidad: 450, 'Inicio soporte': f(2, 1), 'Folio soporte': 'COT-CZ-0002' },
+      { ID: 'CZ-0001', Alta: f(3, 2), Negocio: 'Estética Bella', Contacto: 'Laura Méndez', WhatsApp: '5512345678', Correo: 'laura@esteticabella.mx', Giro: 'Estética', Necesidad: 'Agenda con recordatorios', Origen: 'Formulario', Estado: 'Ganado', 'Código portal': 'DEMO0001', 'Enlace portal': 'https://cenzontle024-dot.github.io/panel/portal.html?demo=1', Soporte: 'Sí', Mensualidad: 450, 'Inicio soporte': f(2, 1), 'Folio soporte': 'COT-CZ-0002' },
       { ID: 'CZ-0002', Alta: f(1, 4), Negocio: 'Café La Esquina', Contacto: 'Jesús Ortiz', WhatsApp: '5511223344', Giro: 'Cafetería', Necesidad: 'Control de ingresos de dos sucursales', Presupuesto: 'Menos de $2,000', Origen: 'Formulario', Estado: 'Ganado' },
       { ID: 'CZ-0003', Alta: f(0, 2), Negocio: 'Taquería Don Beto', Contacto: 'Alberto Ruiz', WhatsApp: '5599887766', Giro: 'Taquería', Necesidad: 'Menú con QR y pedidos por WhatsApp', Origen: 'Manual', Estado: 'Propuesta enviada' },
       { ID: 'CZ-0004', Alta: f(0, 3), Negocio: 'Consultorio Dental Sonríe', Contacto: 'Dra. Paola Ríos', WhatsApp: '5544332211', Giro: 'Consultorio dental', Necesidad: 'Recordatorios de citas', Origen: 'Formulario', Estado: 'Contactado' },
@@ -916,7 +916,7 @@ function demoApi(accion, d) {
   if (accion === 'carpeta') r = { id: 'demo', url: '#' };
   if (accion === 'subirArchivo') { const id = 'arch-' + Date.now() + Math.random().toString(36).slice(2, 6); demoArch[id] = { nombre: d.nombre, mime: d.mime, base64: d.base64 }; r = guardarD('Documentos', { Fecha: hoyISO(), 'Negocio ID': d.negocioId, Nombre: d.nombre, Tipo: d.tipo, 'Archivo ID': id, Visible: d.visible === false ? 'No' : 'Sí' }); if (d.ref) { const o = {}; o[DEMO_CLAVES[d.ref.tabla][1]] = d.ref.id; o['Archivo ID'] = id; guardarD(d.ref.tabla, o); } }
   if (accion === 'archivo') { const f = demoArch[d.id]; return f ? Promise.resolve(f) : Promise.reject(new Error('En la demostración solo se abren los documentos creados en esta sesión')); }
-  if (accion === 'enlacePortal') { const n = db.negocios.find(x => x.ID === d.negocioId); if (!n['Enlace portal']) { n['Código portal'] = 'DEMO' + n.ID.slice(-4); n['Enlace portal'] = 'https://is.gd/demo-' + n.ID.slice(-4).toLowerCase(); } r = { codigo: n['Código portal'], enlace: n['Enlace portal'] }; }
+  if (accion === 'enlacePortal') { const n = db.negocios.find(x => x.ID === d.negocioId); if (!n['Enlace portal']) { n['Código portal'] = 'DEMO' + n.ID.slice(-4); n['Enlace portal'] = 'https://cenzontle024-dot.github.io/panel/portal.html?demo=1'; } r = { codigo: n['Código portal'], enlace: n['Enlace portal'] }; }
   return Promise.resolve({ resultado: JSON.parse(JSON.stringify(r)), todo: copia() });
 }
 
