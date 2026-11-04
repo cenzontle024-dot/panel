@@ -1,4 +1,30 @@
 <!doctype html>
+<!--
+  PANEL CENZONTLE (app instalable, versión 9)
+  ------------------------------------------------------------------
+  App web progresiva (PWA) para administrar Cenzontle desde el celular.
+  Se publica gratis en GitHub Pages (repositorio "panel") y se comunica con la API
+  de Google Apps Script (archivo Api.gs), que guarda todo en la hoja "Cenzontle — Sistema"
+  y los archivos en la carpeta de Drive "Cenzontle — Clientes".
+
+  Estructura de este archivo:
+    1. Bloque style:  colores y estilos (marca: carbón #15171B, marfil #F4EFE6, rosa #D6006F).
+    2. Bloque body:   pantalla de acceso, encabezado, navegación y ventanas emergentes.
+    3. Bloque script: la lógica, en este orden:
+         CONFIGURACIÓN      dirección de la API y estados de los negocios
+         UTILIDADES         formatos de dinero y fechas, almacenamiento de la sesión
+         CONEXIÓN           api(), escribir(), lote(), cargar()
+         CÁLCULOS           recalcular(): saldos, mensualidades pendientes, historial
+         VISTAS             pintar() y una función por pantalla (vInicio, vNegocios, vFicha, vCobros…)
+         VENTANAS / PDF     formularios emergentes y documentos (cotización, recibo, acta, acuerdo)
+         ACCIONES           cotizar, aceptar, avanzar, entregar, registrar pagos, documentos, portal
+         EVENTOS            enlazar(): conecta los botones de cada pantalla con su acción
+         SESIÓN             inicio de sesión, cierre por inactividad
+         DEMOSTRACIÓN       datos de ejemplo y una API simulada (no toca tus datos reales)
+  Regla de oro: los datos se leen completos con api('todo') y se escriben con escribir()/lote();
+  después de cada escritura, la app recalcula y vuelve a pintar la pantalla.
+-->
+
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -264,7 +290,6 @@ nav button[aria-current="page"] { color: var(--rosa-texto); }
 <div class="aviso oculto" id="aviso" role="status"></div>
 <input type="file" id="archivoSel" class="oculto" accept="image/*,application/pdf">
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // =================== CONFIGURACIÓN ===================
 const API_URL = 'https://script.google.com/macros/s/AKfycbyokYmvEyuhSQYRk1g-OCPanPuyRfQfOlwinBmxT9S79ATAAm-T0iES2O8GCMs24SDs/exec';
@@ -291,6 +316,7 @@ function borrarLocal() { try { ['token', 'datos', 'ultimaActividad'].forEach(k =
 function avisar(t) { const a = $('aviso'); a.textContent = t; a.classList.remove('oculto'); clearTimeout(avisar.t); avisar.t = setTimeout(() => a.classList.add('oculto'), 2800); }
 
 // =================== CONEXIÓN ===================
+/** Llama a la API (o a la demostración). "todo" se pide por GET; lo demás por POST con el pase de sesión. */
 async function api(accion, datos) {
   if (estado.demo) return demoApi(accion, datos);
   const token = leerLocal('token');
@@ -301,6 +327,7 @@ async function api(accion, datos) {
   return j.data;
 }
 // Ejecuta una escritura y refresca todo con lo que devuelve el servidor
+/** Ejecuta una escritura, actualiza los datos con la respuesta del servidor y vuelve a pintar. */
 async function escribir(accion, datos, mensaje) {
   try {
     const r = await api(accion, datos);
@@ -309,6 +336,7 @@ async function escribir(accion, datos, mensaje) {
     return r ? r.resultado : null;
   } catch (e) { avisar(e.message); throw e; }
 }
+/** Descarga todos los datos del sistema y pinta la pantalla actual. */
 async function cargar() {
   $('actualizar').classList.add('girando');
   try { estado.D = await api('todo'); recalcular(); if (!estado.demo) guardarLocal('datos', estado.D); pintar(); }
@@ -316,8 +344,19 @@ async function cargar() {
   finally { $('actualizar').classList.remove('girando'); }
 }
 
+/** Siguiente identificador de una tabla (ej. COT-CZ-0006), calculado con los datos cargados. */
+function siguienteId(tabla) {
+  const cfg = { Cotizaciones: ['cotizaciones', 'Folio', 'COT-CZ-', 4, 1], Pagos: ['pagos', 'Recibo', 'REC-CZ-', 4, 0], Negocios: ['negocios', 'ID', 'CZ-', 4, 0] }[tabla];
+  const n = estado.D[cfg[0]].map(x => parseInt(String(x[cfg[1]]).replace(cfg[2], ''), 10) || 0);
+  return cfg[2] + String(Math.max(cfg[4], 0, ...n) + 1).padStart(cfg[3], '0');
+}
+/** Ejecuta varias operaciones en un solo viaje al servidor y refresca la pantalla una vez. */
+const lote = (ops, mensaje) => escribir('lote', { ops }, mensaje);
+
 // =================== CÁLCULOS ===================
+/** Suma de una opción de cotización (cantidad × precio de cada concepto). */
 function totalOpcion(o) { return (o && o.items || []).reduce((s, i) => s + num(i.c) * num(i.p), 0); }
+/** Calcula lo derivado: totales y saldos de cotizaciones, mensualidades pendientes, pagos por confirmar, historial por mes. */
 function recalcular() {
   const D = estado.D, C = { porId: {}, cots: [], mens: [], porConfirmar: [], hist: {}, movs: [] };
   D.negocios.forEach(n => C.porId[n.ID] = n);
@@ -374,6 +413,7 @@ function filasMov(m, borrar) {
 
 // =================== PERIODO ===================
 const claveMes = (a, m) => `${a}-${String(m + 1).padStart(2, '0')}`;
+/** Ingresos y gastos del periodo elegido (mes o año). */
 function totalesPer() {
   const p = estado.periodo, H = estado.C.hist;
   const ks = Object.keys(H).filter(k => p.modo === 'anio' ? k.startsWith(p.anio + '-') : k === claveMes(p.anio, p.mes));
@@ -383,12 +423,14 @@ const etqPer = () => estado.periodo.modo === 'anio' ? `${estado.periodo.anio}` :
 function esActual() { const p = estado.periodo, h = new Date(); return p.modo === 'anio' ? p.anio >= h.getFullYear() : (p.anio > h.getFullYear() || (p.anio === h.getFullYear() && p.mes >= h.getMonth())); }
 function moverPer(d) { const p = estado.periodo; if (p.modo === 'anio') p.anio += d; else { const x = new Date(p.anio, p.mes + d, 1); p.anio = x.getFullYear(); p.mes = x.getMonth(); } estado.movTodos = false; pintar(); }
 function cambiarModo() { const p = estado.periodo, h = new Date(); if (p.modo === 'mes') p.modo = 'anio'; else { p.modo = 'mes'; p.mes = p.anio === h.getFullYear() ? h.getMonth() : 11; } estado.movTodos = false; pintar(); }
+/** Datos de la gráfica: 6 meses hasta el mes elegido, o los 12 meses del año. */
 function serie() {
   const p = estado.periodo, H = estado.C.hist, out = [], h = new Date();
   if (p.modo === 'anio') for (let m = 0; m < 12; m++) { const x = H[claveMes(p.anio, m)] || {}; out.push({ mes: MESES[m].slice(0, 3), i: x.ingresos || 0, g: x.gastos || 0, sel: p.anio === h.getFullYear() && m === h.getMonth() }); }
   else for (let k = 5; k >= 0; k--) { const d = new Date(p.anio, p.mes - k, 1), x = H[claveMes(d.getFullYear(), d.getMonth())] || {}; out.push({ mes: MESES[d.getMonth()].slice(0, 3), i: x.ingresos || 0, g: x.gastos || 0, sel: k === 0 }); }
   return out;
 }
+/** Dibuja la gráfica de barras de ingresos y gastos (SVG). */
 function grafica(s) {
   const W = 320, base = 120, max = Math.max(1, ...s.map(m => Math.max(m.i, m.g))), a = W / s.length, w = s.length > 6 ? 8 : 12;
   let o = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#DDD6CA"/>`;
@@ -399,6 +441,7 @@ function grafica(s) {
 }
 
 // =================== PINTAR ===================
+/** Dibuja la pantalla activa (estado.vista) y conecta sus botones con enlazar(). */
 function pintar() {
   if (!estado.D) return;
   const C = estado.C, t = totalesPer(), g = t.ingresos - t.gastos;
@@ -411,8 +454,10 @@ function pintar() {
   $('vistas').innerHTML = `<section class="vista">${V()}</section>`;
   enlazar();
 }
+/** Cambia de pantalla; con id abre el expediente de ese negocio. */
 function ir(v, id) { estado.vista = v; if (id) estado.fichaId = id; pintar(); window.scrollTo(0, 0); }
 
+/** Pantalla de inicio: gráfica, por cobrar, pagos por confirmar, negocios por estado y movimientos recientes. */
 function vInicio() {
   const C = estado.C, p = estado.periodo;
   const emb = ESTADOS.map(e => `<button class="etapa" data-filtro="${e}"><b>${estado.D.negocios.filter(n => (n.Estado || 'Nuevo') === e).length}</b><span>${e}</span></button>`).join('');
@@ -422,6 +467,7 @@ function vInicio() {
     <div class="bloque"><h3>Negocios por estado</h3><div class="embudo">${emb}</div></div>
     <div class="bloque"><h3>Movimientos recientes</h3><div class="lista">${filasMov(C.movs.slice(0, 5), false) || vacio('Todavía no hay movimientos.')}</div></div>`;
 }
+/** Lista de negocios con buscador y filtro por estado. */
 function vNegocios() {
   const q = estado.buscarN.toLowerCase();
   const ls = estado.D.negocios.filter(n => (estado.filtroN === 'Todos' || (n.Estado || 'Nuevo') === estado.filtroN) && (!q || [n.Negocio, n.Contacto, n.Giro, n.ID].join(' ').toLowerCase().includes(q))).slice().reverse();
@@ -431,6 +477,7 @@ function vNegocios() {
     <div class="filtros" role="group" aria-label="Filtrar por estado">${fil}</div>
     <div class="lista">${ls.length ? ls.map(n => { const s = saldoNegocio(n.ID); return `<div class="fila toque" data-neg="${esc(n.ID)}" role="button" tabindex="0"><div class="txt"><b>${esc(nombreDe(n))}</b><small>${esc(n.Contacto && n.Negocio ? n.Contacto + ', ' : '')}${esc(n.Giro || n.ID)}${s > 0 ? `, debe ${pesos(s)}` : ''}</small></div><span class="estado-chip">${esc(n.Estado || 'Nuevo')}</span></div>`; }).join('') : vacio('No hay negocios aquí.')}</div>`;
 }
+/** Cotizaciones, mensualidades y pagos por confirmar, con filtros. */
 function vCobros() {
   const C = estado.C;
   const F = ['Todas', 'Por cobrar', 'Mensualidades', 'Por confirmar', 'Enviadas', 'Pagadas'];
@@ -443,10 +490,12 @@ function vCobros() {
   return h + ((mens + cots) || `<div class="lista">${vacio('No hay nada aquí.')}</div>`);
 }
 const listaMeses = ms => ms.length > 1 ? ms.slice(0, -1).join(', ') + ' y ' + ms[ms.length - 1] : (ms[0] || '');
+/** Tarjeta de mensualidades pendientes de un cliente. */
 function tarjetaMens(m) {
   const n = m.meses.length;
   return `<article class="cotizacion"><div class="cab"><h4>${esc(nombreDe(m.negocio))}</h4><span class="folio">Soporte mensual</span></div><div class="giro nota">Debe ${n} ${n === 1 ? 'mes' : 'meses'}: ${esc(listaMeses(m.meses))}${m.folio ? `, acordado en ${esc(m.folio)}` : ''}</div><div class="cifras" style="margin-top: 10px"><span>${pesos(m.mensualidad)} al mes</span><span>Total <b>${pesos(m.total)}</b></span></div><div class="acciones" style="margin-top: 12px">${tel10(m.negocio.WhatsApp) ? `<button class="boton chico claro" data-recordar="${esc(m.negocio.ID)}" aria-label="Recordar por WhatsApp" style="flex: none">${I.wa}</button>` : ''}<button class="boton chico claro" data-mens="${esc(m.negocio.ID)}" data-n="1" style="flex: 1">Registrar 1 mes</button>${n > 1 ? `<button class="boton chico" data-mens="${esc(m.negocio.ID)}" data-n="${n}" style="flex: 1">Registrar ${n} meses</button>` : ''}</div></article>`;
 }
+/** Tarjeta de una cotización en la pantalla de Cobros. */
 function tarjetaCot(c) {
   const pct = c.total ? Math.min(100, Math.round(c.pagado / c.total * 100)) : 0;
   const op = c['Opción elegida'] ? `, opción ${esc(c['Opción elegida'])}` : '';
@@ -454,9 +503,11 @@ function tarjetaCot(c) {
     ${c.Estado === 'Aceptada' || c.Estado === 'Pagada' ? `<div class="barra-pago" aria-hidden="true"><i style="width: ${pct}%"></i></div><div class="cifras"><span>Pagado <b>${pesos(c.pagado)}</b> de ${pesos(c.total)}</span><span>Saldo <b>${pesos(c.saldo)}</b></span></div>` : `<div class="cifras" style="margin-top: 8px"><span>${(c.datos.opciones || []).map((o, i) => `Opción ${'AB'[i]}: <b>${pesos(totalOpcion(o))}</b>`).join(' · ')}</span></div>`}
     <div class="acciones" style="margin-top: 12px"><button class="boton chico claro" data-neg="${esc(c['Negocio ID'])}" style="flex: 1">Ver expediente</button>${c.saldo > 0 ? `<button class="boton chico" data-pagar="${esc(c.Folio)}" style="flex: 1">Registrar pago</button>` : ''}</div></article>`;
 }
+/** Tarjeta de un pago avisado por el cliente, pendiente de confirmar. */
 function tarjetaPorConfirmar(p) {
   return `<article class="cotizacion"><div class="cab"><h4>${esc(nombreDe(p.negocio))}</h4><span class="folio">${pesos(num(p.Monto))}</span></div><div class="giro nota">${esc(p.Concepto)}${p.Folio ? `, ${esc(p.Folio)}` : ''}, ${fechaCorta(p.Fecha)}${p.Referencia ? `, referencia ${esc(p.Referencia)}` : ''}</div><div class="acciones" style="margin-top: 12px"><button class="boton chico claro" data-rechazar="${esc(p.Recibo)}" style="flex: 1">No lo recibí</button><button class="boton chico" data-confirmar="${esc(p.Recibo)}" style="flex: 1">Confirmar y enviar recibo</button></div></article>`;
 }
+/** Ingresos y gastos, recientes o por periodo. */
 function vMovimientos() {
   const C = estado.C, t = totalesPer();
   const lista = estado.movTodos ? C.movs.slice(0, 60) : C.movs.filter(m => estado.periodo.modo === 'anio' ? m.fecha.startsWith(estado.periodo.anio + '-') : m.fecha.startsWith(claveMes(estado.periodo.anio, estado.periodo.mes)));
@@ -466,6 +517,7 @@ function vMovimientos() {
     <div class="lista">${filasMov(lista, true) || vacio(estado.movTodos ? 'Todavía no hay movimientos.' : `Sin movimientos en ${etqPer()}.`)}</div>`;
 }
 // =================== FICHA DEL NEGOCIO (EXPEDIENTE) ===================
+/** Expediente de un negocio: datos, acciones, cotizaciones y avance, pagos y documentos. */
 function vFicha() {
   const n = estado.C.porId[estado.fichaId]; if (!n) return vacio('No encontré este negocio.');
   const cots = estado.C.cots.filter(c => c['Negocio ID'] === n.ID);
@@ -496,6 +548,7 @@ function vFicha() {
     <div class="bloque-f"><h3>Expediente</h3><p class="nota" style="margin: 0 0 6px">Todo se guarda en su carpeta de Drive. "Visible" indica si el cliente lo ve en su portal.</p>${docs.length ? docs.map(d => `<div class="doc-row"><div class="txt"><b>${esc(d.Nombre)}</b><small>${esc(d.Tipo)}, ${fechaCorta(d.Fecha)}</small></div><button class="mini" data-vis="${esc(d.ID)}" aria-pressed="${d.Visible !== 'No'}">${d.Visible === 'No' ? 'Oculto' : 'Visible'}</button><button class="mini" data-archivo="${esc(d['Archivo ID'])}">Abrir</button></div>`).join('') : '<p class="nota">Todavía no hay documentos.</p>'}</div>
     <button class="peligro" data-a="eliminar">Eliminar negocio</button>`;
 }
+/** Tarjeta de una cotización dentro del expediente, con su avance por etapas y botones. */
 function bloqueCot(c) {
   const ops = c.datos.opciones || [];
   const etapas = estado.C.etapas;
@@ -505,13 +558,14 @@ function bloqueCot(c) {
     ${activo ? `<ol class="etapas">${etapas.map((e, i) => { const b = c.bitacora.slice().reverse().find(x => x.e === i); return `<li class="${i <= c.avance ? 'ok' : ''}"><span class="pt"></span><div>${esc(e)}${b ? `<small>${fechaCorta(b.f)}${b.n ? `, ${esc(b.n)}` : ''}</small>` : ''}</div></li>`; }).join('')}</ol>` : ''}
     <div class="sub-acc">
       ${c['Archivo ID'] ? `<button class="boton chico claro" data-archivo="${esc(c['Archivo ID'])}">PDF</button>` : ''}
-      ${c.Estado === 'Enviada' ? ops.map((o, i) => `<button class="boton chico" data-aceptar="${esc(c.Folio)}|${'AB'[i]}">Aceptó opción ${'AB'[i]}</button>`).join('') : ''}
+      ${c.Estado === 'Enviada' ? `<button class="boton chico claro" data-editarcot="${esc(c.Folio)}">Editar</button>` + ops.map((o, i) => `<button class="boton chico" data-aceptar="${esc(c.Folio)}|${'AB'[i]}">Aceptó opción ${'AB'[i]}</button>`).join('') : ''}
       ${activo && c.avance < etapas.length - 1 ? `<button class="boton chico" data-avanzar="${esc(c.Folio)}">Avanzar a: ${esc(etapas[c.avance + 1])}</button>` : ''}
       ${c.Estado === 'Enviada' || c.Estado === 'Aceptada' ? `<button class="boton chico claro" data-cancelarcot="${esc(c.Folio)}">Cancelar</button>` : ''}
     </div></div>`;
 }
 
 // =================== AJUSTES ===================
+/** Pantalla de ajustes: mensajes por estado, video, datos de pago y catálogo. */
 function vAjustes() {
   const A = estado.D.ajustes, pl = A.plantillas || {}, pg = A.pago || {}, cat = A.catalogo || [];
   return `<h2 class="titulo-vista">Ajustes</h2>
@@ -527,6 +581,7 @@ function vAjustes() {
 }
 const filaCat = x => `<div class="item-c" style="grid-template-columns: minmax(0, 1fr) 110px 32px"><div class="campo"><label>Servicio</label><input class="cs" value="${esc(x.s)}"></div><div class="campo"><label>Precio</label><input class="cp" inputmode="decimal" value="${esc(x.p)}"></div><button class="quitar" aria-label="Quitar">×</button></div>`;
 // =================== VENTANAS ===================
+/** Abre una ventana emergente con título, contenido y botón de guardar (alGuardar puede devolver un texto de error). */
 function abrirHoja(titulo, html, alGuardar, txtOk) {
   $('hoja').innerHTML = `<div class="cab-hoja"><h2 class="titulo-hoja">${titulo}</h2><button class="icono cerrar-x" id="xHoja" aria-label="Cerrar">${I.x}</button></div>${html}
     <div class="error" id="errHoja" role="alert"></div>${alGuardar ? `<button class="boton" id="okHoja" style="width: 100%; margin-top: 8px">${txtOk || 'Guardar'}</button>` : ''}<button class="boton claro" id="cancelHoja" style="width: 100%; margin-top: 10px">${alGuardar ? 'Cancelar' : 'Cerrar'}</button>`;
@@ -549,12 +604,14 @@ let LOGO = null;
 async function logo() { if (LOGO) return LOGO; try { const b = await (await fetch('icon-192.png')).blob(); LOGO = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); }); } catch (e) { LOGO = ''; } return LOGO; }
 const b64DeDoc = doc => doc.output('datauristring').split(',')[1];
 function blobDe(b64, mime) { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: mime }); }
+/** Comparte un archivo con el menú del celular (WhatsApp, correo…) o lo descarga si no se puede. */
 async function compartirArchivo(b64, nombre, mime, texto) {
   const file = new File([blobDe(b64, mime)], nombre, { type: mime });
   if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], text: texto || '' }); return; } catch (e) { if (e.name === 'AbortError') return; } }
   const url = URL.createObjectURL(file), a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
   avisar('Archivo descargado');
 }
+/** Trae un archivo del expediente (Drive) y ofrece compartirlo o verlo. */
 async function abrirArchivo(id) {
   avisar('Abriendo archivo…');
   try { const f = await api('archivo', { id }); abrirHoja(esc(f.nombre), '<p class="nota">Elige qué hacer con el archivo.</p><div class="pila" style="margin-top: 12px"><button class="boton" id="arCompartir">Compartir (WhatsApp, correo…)</button><button class="boton claro" id="arVer">Ver o descargar</button></div>');
@@ -562,7 +619,13 @@ async function abrirArchivo(id) {
     $('arVer').onclick = () => { const url = URL.createObjectURL(blobDe(f.base64, f.mime)); window.open(url, '_blank'); };
   } catch (e) { avisar(e.message); }
 }
+// La librería de PDF se carga solo cuando se necesita (la app abre más rápido)
+function cargarJsPDF() {
+  if (window.jspdf) return Promise.resolve();
+  return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload = ok; s.onerror = () => mal(new Error('No se pudo cargar el generador de PDF; revisa tu internet')); document.head.appendChild(s); });
+}
 async function pdfBase(titulo, folio, fecha) {
+  await cargarJsPDF();
   const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit: 'mm', format: 'letter' }); const lg = await logo();
   doc.setFillColor(21, 23, 27); doc.rect(0, 0, 216, 32, 'F');
   if (lg) doc.addImage(lg, 'PNG', 14, 6, 20, 20);
@@ -574,6 +637,7 @@ async function pdfBase(titulo, folio, fecha) {
   return doc;
 }
 function piePdf(doc) { doc.setFontSize(8); doc.setTextColor(74, 79, 87); doc.text('Adiós libreta. Tu negocio habla por ti.  ·  tinyurl.com/cenzontle', 108, 271, { align: 'center' }); }
+/** Genera el PDF de la cotización con las dos opciones y las condiciones. */
 async function pdfCotizacion(c, n) {
   const doc = await pdfBase('Cotización', c.Folio, c.Fecha); const d = c.datos || json(c.Datos, {});
   let y = 60; doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.text(nombreDe(n), 16, y); doc.setFont('helvetica', 'normal');
@@ -598,6 +662,7 @@ async function pdfCotizacion(c, n) {
   doc.text(['Jesús Rodrigo García Monroy', 'Cenzontle'], 16, y + 5); doc.text([`Acepto la opción: ____`, nombreDe(n)], 120, y + 5);
   piePdf(doc); return doc;
 }
+/** Genera el PDF del recibo de un pago. */
 async function pdfRecibo(p, n, saldo) {
   const doc = await pdfBase('Recibo de pago', p.Recibo, p.Fecha);
   let y = 62; doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.text('Recibimos de', 16, y); doc.setFont('helvetica', 'normal'); doc.text(nombreDe(n) + (n.Contacto && n.Negocio ? `, ${n.Contacto}` : ''), 16, y + 6);
@@ -611,18 +676,21 @@ async function pdfRecibo(p, n, saldo) {
   piePdf(doc); return doc;
 }
 // =================== ACCIONES ===================
+/** Arma el mensaje de WhatsApp según el estado del negocio, reemplazando {contacto}, {negocio}, {video} y {portal}. */
 function plantilla(n, extra) {
   const pl = (estado.D.ajustes.plantillas || {})[n.Estado || 'Nuevo'] || 'Hola {contacto}, soy Rodrigo de Cenzontle.';
   return pl.replace(/\{contacto\}/g, (n.Contacto || '').split(' ')[0] || 'qué tal').replace(/\{negocio\}/g, n.Negocio || 'tu negocio')
     .replace(/\{video\}/g, estado.D.ajustes.video || '').replace(/\{portal\}/g, (extra && extra.portal) || n['Enlace portal'] || '').trim();
 }
 const abrirWA = (tel, txt) => window.open(`https://wa.me/52${tel10(tel)}?text=${encodeURIComponent(txt)}`, '_blank', 'noopener');
+/** Muestra el mensaje del estado para revisarlo y abre WhatsApp. */
 async function mensajeWA(n) {
   let extra = {};
   if ((n.Estado === 'Ganado') && !n['Enlace portal']) { try { extra.portal = (await escribir('enlacePortal', { negocioId: n.ID })).enlace; } catch (e) {} }
   const txt = plantilla(n, extra);
   abrirHoja('Mensaje por WhatsApp', `<p class="nota" style="margin-bottom: 8px">Mensaje para el estado <b>${esc(n.Estado || 'Nuevo')}</b>. Puedes ajustarlo antes de enviar.</p><div class="campo"><label for="waTxt">Mensaje</label><textarea id="waTxt" style="min-height: 150px">${esc(txt)}</textarea></div>`, () => { abrirWA(n.WhatsApp, val('waTxt')); cerrarHoja(); }, 'Abrir WhatsApp');
 }
+/** Formulario para crear o editar un negocio (incluye datos del soporte mensual). */
 function formNegocio(n) {
   n = n || {};
   abrirHoja(n.ID ? 'Editar datos' : 'Nuevo negocio', `<div class="rejilla">${campo('nNeg', 'Nombre del negocio', n.Negocio)}${campo('nCon', 'Nombre del contacto', n.Contacto)}
@@ -639,36 +707,50 @@ function formNegocio(n) {
     cerrarHoja(); ir('ficha', r.ID);
   });
 }
+/** Cambia el estado al instante en pantalla y lo guarda en segundo plano. */
 async function cambiarEstado(n, e) {
-  await escribir('guardar', { tabla: 'Negocios', fila: { ID: n.ID, Estado: e } }, `Estado: ${e}`);
+  const anterior = n.Estado; n.Estado = e; recalcular(); pintar();
   if (e === 'Propuesta enviada') cotizador(estado.C.porId[n.ID]);
+  try { await escribir('guardar', { tabla: 'Negocios', fila: { ID: n.ID, Estado: e } }, `Estado: ${e}`); } catch (err) { n.Estado = anterior; recalcular(); pintar(); }
 }
 // ---------- cotizador ----------
-function cotizador(n) {
+/** Abre el cotizador para crear una cotización nueva o, si se pasa "edit", editar una enviada (mismo folio). */
+function cotizador(n, edit) {
   const cat = estado.D.ajustes.catalogo || [];
-  const opHTML = (k, nombre) => `<div class="bloque-f" style="background: var(--marfil)"><h3>Opción ${k}${k === 'B' ? ' (recomendada)' : ''}</h3>${campo('on' + k, 'Nombre de la opción', nombre)}
+  const prev = edit ? (edit.datos.opciones || []) : [];
+  const opHTML = (k, nombre) => { const i = 'AB'.indexOf(k); return `<div class="bloque-f" style="background: var(--marfil)"><h3>Opción ${k}${k === 'B' ? ' (recomendada)' : ''}</h3>${campo('on' + k, 'Nombre de la opción', (prev[i] && prev[i].nombre) || nombre)}
     <div id="it${k}" style="margin-top: 10px"></div><button class="boton claro chico" data-addit="${k}" style="margin-top: 4px">+ Concepto</button>
-    <div class="total-c"><span>Implementación</span><span id="tot${k}">$0</span></div>${campo('om' + k, 'Soporte mensual opcional (MXN)', '', 'inputmode="decimal" placeholder="0"')}</div>`;
-  abrirHoja(`Cotización para ${esc(nombreDe(n))}`, `<p class="nota" style="margin-bottom: 10px">${n.Necesidad ? `Necesita: ${esc(n.Necesidad)}. ` : ''}${n.Presupuesto ? `Presupuesto: ${esc(n.Presupuesto)}.` : ''}</p>
+    <div class="total-c"><span>Implementación</span><span id="tot${k}">$0</span></div>${campo('om' + k, 'Soporte mensual opcional (MXN)', (prev[i] && prev[i].mensualidad) || '', 'inputmode="decimal" placeholder="0"')}</div>`; };
+  abrirHoja(edit ? `Editar ${esc(edit.Folio)}` : `Cotización para ${esc(nombreDe(n))}`, `<p class="nota" style="margin-bottom: 10px">${n.Necesidad ? `Necesita: ${esc(n.Necesidad)}. ` : ''}${n.Presupuesto ? `Presupuesto: ${esc(n.Presupuesto)}.` : ''}</p>
     <button class="boton marca" id="sugerir" style="width: 100%; margin-bottom: 12px">Sugerir opciones según su diagnóstico</button><p class="nota" id="sugNota" style="margin: -4px 0 12px"></p>
-    ${opHTML('A', 'Esencial')}${opHTML('B', 'Completa')}<div class="dos">${campo('cVig', 'Vigencia (días)', '15', 'inputmode="numeric"')}${campo('cNot', 'Notas', '')}</div>`, async () => {
-    const leer = k => ({ nombre: val('on' + k), mensualidad: num(val('om' + k)), items: [...document.querySelectorAll(`#it${k} .item-c`)].map(r => ({ s: r.querySelector('.is').value.trim(), c: num(r.querySelector('.ic').value) || 1, p: num(r.querySelector('.ip').value) })).filter(i => i.s && i.p > 0) });
+    ${opHTML('A', 'Esencial')}${opHTML('B', 'Completa')}<div class="dos">${campo('cVig', 'Vigencia (días)', (edit && edit.datos.vigencia) || '15', 'inputmode="numeric"')}${campo('cNot', 'Notas', (edit && edit.datos.notas) || '')}</div>`, async () => {
+    const leer = k => ({ nombre: val('on' + k), mensualidad: num(val('om' + k)), items: [...document.querySelectorAll(`#it${k} .item-c`)].map(r => ({ s: conceptoDe(r), c: num(r.querySelector('.ic').value) || 1, p: num(r.querySelector('.ip').value) })).filter(i => i.s && i.p > 0) });
     const ops = ['A', 'B'].map(leer).filter(o => o.items.length);
     if (!ops.length) return 'Agrega al menos un concepto con precio.';
-    const datos = { opciones: ops, vigencia: num(val('cVig')) || 15, notas: val('cNot') };
-    const c = await escribir('guardar', { tabla: 'Cotizaciones', fila: { Fecha: hoyISO(), 'Negocio ID': n.ID, Estado: 'Enviada', Datos: datos, Avance: 0, 'Bitácora': [] } });
-    const doc = await pdfCotizacion(Object.assign({}, c, { datos }), n); const b64 = b64DeDoc(doc), nombre = `${c.Folio} ${nombreDe(n)}.pdf`;
-    await escribir('subirArchivo', { negocioId: n.ID, nombre, base64: b64, mime: 'application/pdf', tipo: 'Cotización', visible: true, ref: { tabla: 'Cotizaciones', id: c.Folio } });
-    if ((n.Estado || 'Nuevo') !== 'Propuesta enviada') await escribir('guardar', { tabla: 'Negocios', fila: { ID: n.ID, Estado: 'Propuesta enviada' } });
-    listoParaCompartir(`${c.Folio} lista`, b64, nombre, plantilla(Object.assign({}, n, { Estado: 'Propuesta enviada' })), n);
-  }, 'Generar cotización');
+    const datos = { opciones: ops, vigencia: num(val('cVig')) || 15, notas: val('cNot'), version: edit ? (num(edit.datos.version) || 1) + 1 : 1 };
+    const folio = edit ? edit.Folio : siguienteId('Cotizaciones');
+    const fila = { Folio: folio, Fecha: hoyISO(), 'Negocio ID': n.ID, Estado: 'Enviada', Datos: datos, Avance: 0, 'Bitácora': [] };
+    const doc = await pdfCotizacion(fila, n); const b64 = b64DeDoc(doc), nombre = `${folio}${datos.version > 1 ? ` v${datos.version}` : ''} ${nombreDe(n)}.pdf`;
+    const opsLote = [{ accion: 'guardar', datos: { tabla: 'Cotizaciones', fila } }];
+    if (edit && edit['Archivo ID']) { const viejo = estado.D.documentos.find(d => d['Archivo ID'] === edit['Archivo ID']); if (viejo) opsLote.push({ accion: 'guardar', datos: { tabla: 'Documentos', fila: { ID: viejo.ID, Visible: 'No', Nombre: viejo.Nombre.replace('.pdf', ' (versión anterior).pdf') } } }); }
+    opsLote.push({ accion: 'subirArchivo', datos: { negocioId: n.ID, nombre, base64: b64, mime: 'application/pdf', tipo: 'Cotización', visible: true, ref: { tabla: 'Cotizaciones', id: folio } } });
+    if (!['Propuesta enviada', 'Negociando'].includes(n.Estado || 'Nuevo')) opsLote.push({ accion: 'guardar', datos: { tabla: 'Negocios', fila: { ID: n.ID, Estado: 'Propuesta enviada' } } });
+    await lote(opsLote);
+    listoParaCompartir(`${folio} ${edit ? 'actualizada' : 'lista'}`, b64, nombre, plantilla(Object.assign({}, n, { Estado: 'Propuesta enviada' })), n);
+  }, edit ? 'Guardar cambios y generar PDF' : 'Generar cotización');
+  // Cada concepto: elegir del catálogo (llena el precio) o escribir uno nuevo
+  const opcionesCat = `<option value="">Elige del catálogo…</option>${cat.map((x, i) => `<option value="${i}">${esc(x.s)} (${pesos(num(x.p))})</option>`).join('')}<option value="otro">Escribir otro concepto</option>`;
   const fila = (k, it) => { const d = document.createElement('div'); d.className = 'item-c cot';
-    d.innerHTML = `<div class="campo"><label>Concepto</label><input class="is" list="catDL" value="${esc(it.s || '')}"></div><div class="campo"><label>Cant.</label><input class="ic" inputmode="numeric" value="${esc(it.c || 1)}"></div><div class="campo"><label>Precio</label><input class="ip" inputmode="decimal" value="${esc(it.p || '')}"></div><button class="quitar" aria-label="Quitar">×</button>`;
-    $('it' + k).appendChild(d); d.querySelector('.quitar').onclick = () => { d.remove(); sumar(); };
-    d.querySelectorAll('input').forEach(i => i.oninput = () => { if (i.classList.contains('is')) { const m = cat.find(x => x.s === i.value); if (m && !d.querySelector('.ip').value) d.querySelector('.ip').value = m.p; } sumar(); }); };
+    const idx = cat.findIndex(x => x.s === it.s);
+    d.innerHTML = `<div class="campo"><label>Concepto</label><select class="isel">${opcionesCat}</select><input class="is${idx === -1 && it.s ? '' : ' oculto'}" style="margin-top: 6px" placeholder="Describe el concepto" value="${esc(idx === -1 ? it.s || '' : '')}"></div><div class="campo"><label>Cant.</label><input class="ic" inputmode="numeric" value="${esc(it.c || 1)}"></div><div class="campo"><label>Precio</label><input class="ip" inputmode="decimal" value="${esc(it.p || '')}"></div><button class="quitar" aria-label="Quitar">×</button>`;
+    $('it' + k).appendChild(d);
+    const sel = d.querySelector('.isel'); sel.value = idx !== -1 ? String(idx) : (it.s ? 'otro' : '');
+    sel.onchange = () => { const otro = sel.value === 'otro'; d.querySelector('.is').classList.toggle('oculto', !otro); if (otro) d.querySelector('.is').focus(); else if (sel.value !== '') d.querySelector('.ip').value = num(cat[+sel.value].p); sumar(); };
+    d.querySelector('.quitar').onclick = () => { d.remove(); sumar(); };
+    d.querySelectorAll('input').forEach(i => i.oninput = sumar); };
   const sumar = () => ['A', 'B'].forEach(k => { $('tot' + k).textContent = pesos([...document.querySelectorAll(`#it${k} .item-c`)].reduce((s, r) => s + num(r.querySelector('.ic').value) * num(r.querySelector('.ip').value), 0)); });
-  $('hoja').insertAdjacentHTML('beforeend', `<datalist id="catDL">${cat.map(x => `<option value="${esc(x.s)}">`).join('')}</datalist>`);
-  fila('A', {}); fila('B', {}); fila('B', {});
+  ['A', 'B'].forEach((k, i) => { const its = prev[i] ? prev[i].items : (k === 'A' ? [{}] : [{}, {}]); its.forEach(x => fila(k, x)); });
+  sumar();
   document.querySelectorAll('[data-addit]').forEach(b => b.onclick = () => fila(b.dataset.addit, {}));
   $('sugerir').onclick = () => {
     const sug = sugerirOpciones(n, cat);
@@ -677,6 +759,13 @@ function cotizador(n) {
     sumar(); $('sugNota').textContent = sug.razon;
   };
 }
+/** Nombre del concepto de una fila: el del catálogo elegido o el escrito a mano. */
+function conceptoDe(r) {
+  const sel = r.querySelector('.isel'), cat = estado.D.ajustes.catalogo || [];
+  if (sel && sel.value !== '' && sel.value !== 'otro') return cat[+sel.value].s;
+  return r.querySelector('.is').value.trim();
+}
+/** Ventana final tras generar un documento: compartir PDF, mensaje por WhatsApp o correo. */
 function listoParaCompartir(titulo, b64, nombre, texto, n) {
   abrirHoja(titulo, `<p class="nota">Se guardó en su expediente de Drive.</p><div class="pila" style="margin-top: 14px">
     <button class="boton" id="shArch">Compartir PDF (WhatsApp, correo…)</button>
@@ -686,6 +775,7 @@ function listoParaCompartir(titulo, b64, nombre, texto, n) {
   if ($('shWa')) $('shWa').onclick = () => abrirWA(n.WhatsApp, texto);
   if ($('shMail')) $('shMail').onclick = () => { location.href = `mailto:${n.Correo}?subject=${encodeURIComponent(nombre.replace('.pdf', ''))}&body=${encodeURIComponent(texto + '\n\nTe adjunto el documento.')}`; };
 }
+/** Registra la opción aceptada: cotización Aceptada, negocio Ganado, soporte contratado y portal creado (un solo viaje). */
 async function aceptarCot(folio, op) {
   const c = estado.C.cots.find(x => x.Folio === folio), n = c.negocio, o = c.datos.opciones['AB'.indexOf(op)];
   if (!confirm(`¿Registrar que ${nombreDe(n)} aceptó la opción ${op} por ${pesos(totalOpcion(o))}?`)) return;
@@ -693,13 +783,14 @@ async function aceptarCot(folio, op) {
   const neg = { ID: n.ID, Estado: 'Ganado' };
   if (num(o.mensualidad) > 0) Object.assign(neg, { Soporte: 'Sí', Mensualidad: num(o.mensualidad), 'Folio soporte': folio, 'Inicio soporte': '', 'Fin soporte': '' });  // empieza a contar al entregar
   filas.push({ tabla: 'Negocios', fila: neg });
-  await escribir('guardarVarios', { filas });
-  const p = await escribir('enlacePortal', { negocioId: n.ID }, '¡Propuesta aceptada!');
+  const res = await lote(filas.map(f => ({ accion: 'guardar', datos: f })).concat([{ accion: 'enlacePortal', datos: { negocioId: n.ID } }]), '¡Propuesta aceptada!');
+  const p = res[res.length - 1];
   const nn = estado.C.porId[n.ID];
   abrirHoja('¡Propuesta aceptada!', `<p class="nota">Se creó su portal: ahí verá el avance, sus documentos y su estado de cuenta.</p><p style="margin: 12px 0; font-weight: 700; overflow-wrap: anywhere">${esc(p.enlace)}</p><div class="pila"><button class="boton wa" id="bienv">Enviar bienvenida por WhatsApp</button><button class="boton claro" id="copiarP">Copiar enlace</button></div>`);
   $('bienv').onclick = () => abrirWA(nn.WhatsApp, plantilla(nn, { portal: p.enlace }));
   $('copiarP').onclick = async () => { try { await navigator.clipboard.writeText(p.enlace); avisar('Enlace copiado'); } catch (e) {} };
 }
+/** Avanza el proyecto a la siguiente etapa con una nota para el cliente; la entrega pasa por entregar(). */
 function avanzar(folio) {
   const c = estado.C.cots.find(x => x.Folio === folio), sig = c.avance + 1;
   if (sig === estado.C.etapas.length - 1) return entregar(c);
@@ -710,6 +801,7 @@ function avanzar(folio) {
 }
 // ---------- sugerencia de opciones (reglas, sin costo) ----------
 const AREAS = ['Ventas e inventario', 'Citas y reservaciones', 'Atención y seguimiento de clientes', 'Cobros y pagos', 'Que me encuentren en internet', 'Imagen y logo', 'Que mis clientes regresen'];
+/** Propone las opciones A y B con reglas a partir del diagnóstico del formulario y del catálogo. */
 function sugerirOpciones(n, cat) {
   const d = json(n['Diagnóstico'], null); if (!d) return null;
   const r = t => String(d[t] || ''), si = t => r(t) === 'Sí', tiene = (t, x) => r(t).includes(x);
@@ -739,6 +831,7 @@ function sugerirOpciones(n, cat) {
   return { razon, opciones: [{ nombre: 'Esencial', items: A, mensualidad: 0 }, { nombre: 'Completa', items: Bset, mensualidad: 450 }] };
 }
 // ---------- entrega: requiere saldo liquidado; genera acta y, si aplica, acuerdo de soporte ----------
+/** Entrega el proyecto: exige saldo liquidado y genera acta y, si aplica, acuerdo de soporte. */
 function entregar(c) {
   const n = c.negocio;
   if (c.saldo > 0) {
@@ -754,19 +847,21 @@ function entregar(c) {
     const f = val('eFecha') || hoyISO(), dias = num(val('eGar')) || 30, gar = new Date(f + 'T12:00'); gar.setDate(gar.getDate() + dias);
     const garISO = gar.toLocaleDateString('en-CA'), datosEnt = { trabajos: val('eTrab'), fecha: f, garantia: garISO, dias, capacitacion: val('eCap'), obs: val('eObs') };
     const sig = estado.C.etapas.length - 1;
-    await escribir('guardar', { tabla: 'Cotizaciones', fila: { Folio: c.Folio, Avance: sig, Estado: 'Pagada', 'Bitácora': c.bitacora.concat([{ e: sig, f, n: `Garantía hasta el ${fechaCorta(garISO)}` }]) } });
+    const ops = [{ accion: 'guardar', datos: { tabla: 'Cotizaciones', fila: { Folio: c.Folio, Avance: sig, Estado: 'Pagada', 'Bitácora': c.bitacora.concat([{ e: sig, f, n: `Garantía hasta el ${fechaCorta(garISO)}` }]) } } }];
     const acta = await pdfActa(c, n, datosEnt), b1 = b64DeDoc(acta), nom1 = `Acta de entrega ${c.Folio} ${nombreDe(n)}.pdf`;
-    await escribir('subirArchivo', { negocioId: n.ID, nombre: nom1, base64: b1, mime: 'application/pdf', tipo: 'Acta de entrega', visible: true });
+    ops.push({ accion: 'subirArchivo', datos: { negocioId: n.ID, nombre: nom1, base64: b1, mime: 'application/pdf', tipo: 'Acta de entrega', visible: true } });
     if (sop) {
       const ini = new Date(f + 'T12:00'); const iniISO = new Date(ini.getFullYear(), ini.getMonth() + 1, 1).toLocaleDateString('en-CA');
-      await escribir('guardar', { tabla: 'Negocios', fila: { ID: n.ID, 'Inicio soporte': iniISO, 'Fin soporte': '' } });
-      const ac = await pdfAcuerdoSoporte(estado.C.porId[n.ID], c, iniISO), b2 = b64DeDoc(ac), nom2 = `Acuerdo de soporte mensual ${nombreDe(n)}.pdf`;
-      await escribir('subirArchivo', { negocioId: n.ID, nombre: nom2, base64: b2, mime: 'application/pdf', tipo: 'Acuerdo de soporte', visible: true });
+      ops.push({ accion: 'guardar', datos: { tabla: 'Negocios', fila: { ID: n.ID, 'Inicio soporte': iniISO, 'Fin soporte': '' } } });
+      const ac = await pdfAcuerdoSoporte(Object.assign({}, n, { 'Inicio soporte': iniISO }), c, iniISO), b2 = b64DeDoc(ac), nom2 = `Acuerdo de soporte mensual ${nombreDe(n)}.pdf`;
+      ops.push({ accion: 'subirArchivo', datos: { negocioId: n.ID, nombre: nom2, base64: b2, mime: 'application/pdf', tipo: 'Acuerdo de soporte', visible: true } });
     }
+    await lote(ops);
     const nn = estado.C.porId[n.ID];
     listoParaCompartir('¡Proyecto entregado!', b1, nom1, `Hola ${(nn.Contacto || '').split(' ')[0]}, ¡tu proyecto está entregado! Te comparto el acta de entrega${sop ? ' y el acuerdo de soporte mensual' : ''}. También están en tu portal: ${nn['Enlace portal'] || ''}`, nn);
   }, 'Entregar y generar documentos');
 }
+/** Genera el PDF del acta de entrega con garantía. */
 async function pdfActa(c, n, e) {
   const doc = await pdfBase('Acta de entrega', c.Folio, e.fecha); let y = 60;
   doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.text('Cliente', 16, y); doc.setFont('helvetica', 'normal'); doc.text([nombreDe(n), n.Contacto && n.Negocio ? n.Contacto : ''].filter(Boolean), 16, y + 6);
@@ -778,6 +873,7 @@ async function pdfActa(c, n, e) {
   doc.text(['Entrega: Jesús Rodrigo García Monroy', 'Cenzontle'], 16, y + 5); doc.text(['Recibe de conformidad', `${n.Contacto || ''}, ${nombreDe(n)}`], 120, y + 5);
   piePdf(doc); return doc;
 }
+/** Genera el PDF del acuerdo de soporte mensual con sus términos. */
 async function pdfAcuerdoSoporte(n, c, ini) {
   const doc = await pdfBase('Acuerdo de soporte mensual', n['Folio soporte'] || c.Folio, hoyISO()); let y = 60;
   doc.setFontSize(10); const p = s => { const l = doc.splitTextToSize(s, 182); doc.text(l, 16, y); y += l.length * 5 + 3; };
@@ -795,6 +891,7 @@ async function pdfAcuerdoSoporte(n, c, ini) {
 }
 
 // ---------- pagos y recibos ----------
+/** Formulario para registrar un pago (anticipo, liquidación, mensualidad…). */
 function formPago(n, pre) {
   pre = pre || {}; n = n || null;
   const cots = estado.C.cots.filter(c => c.saldo > 0 && (!n || c['Negocio ID'] === n.ID));
@@ -807,34 +904,42 @@ function formPago(n, pre) {
     <div class="dos"><div class="campo"><label for="pFecha">Fecha</label><input id="pFecha" type="date" value="${hoyISO()}"></div>${campo('pRef', 'Referencia', '')}</div></div>`, async () => {
     const monto = num(val('pMonto')); if (!(monto > 0)) return 'Escribe el monto.';
     const nid = n ? n.ID : val('pNeg'); if (!nid) return 'Elige el negocio.';
-    const p = await escribir('guardar', { tabla: 'Pagos', fila: { Fecha: val('pFecha'), 'Negocio ID': nid, Folio: val('pFol'), Concepto: val('pCon') || val('pTipo'), Tipo: val('pTipo'), Monto: monto, Forma: val('pForma'), Estado: 'Confirmado', Referencia: val('pRef') } });
-    await tras(p);
+    await registrarPagoCompleto({ Recibo: siguienteId('Pagos'), Fecha: val('pFecha'), 'Negocio ID': nid, Folio: val('pFol'), Concepto: val('pCon') || val('pTipo'), Tipo: val('pTipo'), Monto: monto, Forma: val('pForma'), Estado: 'Confirmado', Referencia: val('pRef') });
   }, 'Guardar y generar recibo');
   $('pFol').onchange = () => { const c = cots.find(x => x.Folio === val('pFol')); if (c) { $('pMonto').value = c.pagado === 0 ? Math.round(c.total / 2 * 100) / 100 : c.saldo; $('pTipo').value = c.pagado === 0 ? 'Anticipo' : 'Liquidación'; if (!val('pCon')) $('pCon').value = `${c.pagado === 0 ? 'Anticipo' : 'Pago'} ${c.Folio}`; } };
   if (pre.folio) $('pFol').onchange();
   if (pre.monto) $('pMonto').value = pre.monto;
 }
-// Después de confirmar un pago: recibo, avance a "Anticipo recibido" y cotización pagada cuando se liquida
-async function tras(p) {
+/**
+ * Registra (o confirma) un pago en un solo viaje: guarda el pago, sube su recibo en PDF al expediente,
+ * marca la cotización como pagada si se liquida y avanza el proyecto a "Anticipo recibido".
+ */
+async function registrarPagoCompleto(p) {
   const n = estado.C.porId[p['Negocio ID']];
   const c = p.Folio ? estado.C.cots.find(x => x.Folio === p.Folio) : null;
-  const saldo = c ? c.saldo : null;
+  const yaContado = estado.D.pagos.some(x => x.Recibo === p.Recibo && x.Estado !== 'Por confirmar');
+  const saldo = c ? Math.max(0, c.saldo - (yaContado || p.Tipo === 'Mensualidad' ? 0 : num(p.Monto))) : null;
   const doc = await pdfRecibo(p, n, saldo); const b64 = b64DeDoc(doc), nombre = `${p.Recibo} ${nombreDe(n)}.pdf`;
-  await escribir('subirArchivo', { negocioId: n.ID, nombre, base64: b64, mime: 'application/pdf', tipo: 'Recibo de pago', visible: true, ref: { tabla: 'Pagos', id: p.Recibo } });
+  const ops = [{ accion: 'guardar', datos: { tabla: 'Pagos', fila: p } },
+    { accion: 'subirArchivo', datos: { negocioId: n.ID, nombre, base64: b64, mime: 'application/pdf', tipo: 'Recibo de pago', visible: true, ref: { tabla: 'Pagos', id: p.Recibo } } }];
   if (c) {
     const f = { Folio: c.Folio };
-    if (c.saldo <= 0) f.Estado = 'Pagada';
+    if (saldo <= 0 && c.Estado === 'Aceptada') f.Estado = 'Pagada';
     if (c.avance < 1 && p.Tipo !== 'Mensualidad') { f.Avance = 1; f['Bitácora'] = c.bitacora.concat([{ e: 1, f: hoyISO(), n: '' }]); }
-    if (Object.keys(f).length > 1) await escribir('guardar', { tabla: 'Cotizaciones', fila: f });
+    if (Object.keys(f).length > 1) ops.push({ accion: 'guardar', datos: { tabla: 'Cotizaciones', fila: f } });
   }
+  await lote(ops);
   const texto = `Hola ${(n.Contacto || '').split(' ')[0]}, recibimos tu pago de ${pesos(num(p.Monto))}. ¡Gracias! Te comparto tu recibo${n['Enlace portal'] ? `; también lo encuentras en tu portal: ${n['Enlace portal']}` : '.'}`;
   listoParaCompartir(`Recibo ${p.Recibo}`, b64, nombre, texto, n);
 }
+/** Confirma un pago que el cliente avisó desde su portal y le genera su recibo. */
 async function confirmarPago(rec) {
   const p = estado.D.pagos.find(x => x.Recibo === rec);
-  const r = await escribir('guardar', { tabla: 'Pagos', fila: { Recibo: rec, Estado: 'Confirmado' } }, 'Pago confirmado');
-  await tras(Object.assign({}, p, r));
+  await registrarPagoCompleto(Object.assign({}, p, { Estado: 'Confirmado' }));
 }
+/** Para pagos sin recibo: lo genera y lo sube a su expediente. */
+async function tras(p) { await registrarPagoCompleto(Object.assign({}, p)); }
+/** Abre el registro de pago con las mensualidades pendientes de un cliente. */
 function pagarMens(id, nMeses) {
   const m = estado.C.mens.find(x => x.negocio.ID === id); const k = Math.max(1, Math.min(nMeses, m.meses.length));
   formPago(m.negocio, { titulo: 'Registrar mensualidad', monto: m.mensualidad * k, tipo: 'Mensualidad', concepto: `Mensualidad de soporte: ${listaMeses(m.meses.slice(0, k))}` });
@@ -849,6 +954,7 @@ $('archivoSel').onchange = async () => {
   await escribir('subirArchivo', { negocioId: subirPara, nombre: f.name, base64: b64, mime: f.type || 'application/octet-stream', tipo: 'Documento', visible }, 'Documento guardado en su expediente');
   $('archivoSel').value = '';
 };
+/** Crea u obtiene el enlace del portal del cliente y permite enviarlo. */
 async function portal(n) {
   const p = n['Enlace portal'] ? { enlace: n['Enlace portal'] } : await escribir('enlacePortal', { negocioId: n.ID });
   abrirHoja('Portal del cliente', `<p class="nota">Aquí ve el avance de su proyecto, sus documentos visibles y su estado de cuenta, y puede avisarte cuando te paga.</p><p style="margin: 12px 0; font-weight: 700; overflow-wrap: anywhere">${esc(p.enlace)}</p>
@@ -857,12 +963,14 @@ async function portal(n) {
   $('pVer').onclick = () => window.open(estado.demo ? 'portal.html?demo=1' : p.enlace, '_blank');
   $('pCop').onclick = async () => { try { await navigator.clipboard.writeText(p.enlace); avisar('Enlace copiado'); } catch (e) {} };
 }
+/** Crea u obtiene la carpeta de Drive del negocio y la abre. */
 async function carpeta(n) {
   const r = await escribir('carpeta', { negocioId: n.ID });
   if (estado.demo) return avisar('En la versión real se abre su carpeta en Google Drive');
   window.open(r.url, '_blank');
 }
 // =================== ENLACES DE EVENTOS ===================
+/** Conecta los botones de la pantalla actual con sus acciones (se llama después de cada pintar()). */
 function enlazar() {
   const q = s => document.querySelectorAll('#vistas ' + s);
   q('[data-ir]').forEach(b => b.onclick = () => { if (b.dataset.fc) estado.filtroC = b.dataset.fc; ir(b.dataset.ir); });
@@ -879,9 +987,10 @@ function enlazar() {
   q('[data-rechazar]').forEach(b => b.onclick = async () => { if (confirm('¿Eliminar este aviso de pago? Avísale al cliente que no lo encontraste.')) await escribir('eliminar', { tabla: 'Pagos', id: b.dataset.rechazar }, 'Aviso eliminado'); });
   q('[data-archivo]').forEach(b => b.onclick = () => abrirArchivo(b.dataset.archivo));
   q('[data-recibo]').forEach(b => b.onclick = () => tras(estado.D.pagos.find(p => p.Recibo === b.dataset.recibo)));
-  q('[data-vis]').forEach(b => b.onclick = () => { const d = estado.D.documentos.find(x => x.ID === b.dataset.vis); escribir('guardar', { tabla: 'Documentos', fila: { ID: d.ID, Visible: d.Visible === 'No' ? 'Sí' : 'No' } }, d.Visible === 'No' ? 'Ahora el cliente lo ve' : 'Ahora es solo para ti'); });
+  q('[data-vis]').forEach(b => b.onclick = () => { const d = estado.D.documentos.find(x => x.ID === b.dataset.vis), v = d.Visible === 'No' ? 'Sí' : 'No'; d.Visible = v; pintar(); escribir('guardar', { tabla: 'Documentos', fila: { ID: d.ID, Visible: v } }, v === 'Sí' ? 'Ahora el cliente lo ve' : 'Ahora es solo para ti').catch(() => cargar()); });
   q('[data-aceptar]').forEach(b => b.onclick = () => { const [f, o] = b.dataset.aceptar.split('|'); aceptarCot(f, o); });
   q('[data-avanzar]').forEach(b => b.onclick = () => avanzar(b.dataset.avanzar));
+  q('[data-editarcot]').forEach(b => b.onclick = () => { const c = estado.C.cots.find(x => x.Folio === b.dataset.editarcot); cotizador(c.negocio, c); });
   q('[data-cancelarcot]').forEach(b => b.onclick = async () => { if (confirm('¿Cancelar esta cotización? Dejará de contar como saldo por cobrar.')) await escribir('guardar', { tabla: 'Cotizaciones', fila: { Folio: b.dataset.cancelarcot, Estado: 'Cancelada' } }, 'Cotización cancelada'); });
   q('[data-borrar]').forEach(b => b.onclick = async () => { const [t, id] = b.dataset.borrar.split('|'); if (confirm('¿Borrar este movimiento? No se puede deshacer.')) await escribir('eliminar', { tabla: t === 'gasto' ? 'Gastos' : 'Pagos', id }, 'Movimiento borrado'); });
   q('[data-vacio]').forEach(b => b.onclick = menuNuevo);
@@ -911,6 +1020,7 @@ function enlazar() {
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => ir(b.dataset.v));
 $('perAnt').onclick = () => moverPer(-1); $('perSig').onclick = () => moverPer(1); $('perEtq').onclick = cambiarModo;
 $('actualizar').onclick = cargar;
+/** Menú del botón +: pago, gasto o negocio nuevo. */
 function menuNuevo() {
   abrirHoja('¿Qué quieres registrar?', `<div class="pila"><button class="boton" id="mPago">Pago recibido</button><button class="boton claro" id="mGasto">Gasto</button><button class="boton claro" id="mNeg">Nuevo negocio</button></div>`);
   $('mPago').onclick = () => formPago(null);
@@ -924,6 +1034,7 @@ function menuNuevo() {
 $('nuevo').onclick = menuNuevo;
 
 // =================== SESIÓN ===================
+/** Muestra la app tras iniciar sesión (o en modo demostración) y carga los datos. */
 function mostrarApp(demo) {
   estado.demo = demo; $('bandaDemo').classList.toggle('oculto', !demo);
   $('acceso').classList.add('oculto'); $('app').classList.remove('oculto'); estado.vista = 'inicio';
@@ -931,6 +1042,7 @@ function mostrarApp(demo) {
   cargar();
 }
 function salirApp() { estado.D = null; cerrarHoja(); $('app').classList.add('oculto'); $('acceso').classList.remove('oculto'); }
+/** Cierra la sesión en el servidor y en el celular. */
 function cerrarSesion(motivo) {
   const token = leerLocal('token');
   if (token && !estado.demo) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token, accion: 'logout' }), keepalive: true }).catch(() => {});
@@ -959,6 +1071,7 @@ document.addEventListener('visibilitychange', () => {
 
 // =================== MODO DEMOSTRACIÓN ===================
 let demoDB = null, demoArch = {};
+/** Datos de ejemplo del modo demostración. */
 function demoSemilla() {
   const f = (m, d) => { const h = new Date(); return new Date(h.getFullYear(), h.getMonth() - m, d).toLocaleDateString('en-CA'); };
   const ops = (a, b, ma, mb) => JSON.stringify({ opciones: [{ nombre: 'Esencial', items: a, mensualidad: ma }, { nombre: 'Completa', items: b, mensualidad: mb }], vigencia: 15 });
@@ -994,6 +1107,7 @@ function demoSemilla() {
   };
 }
 const DEMO_CLAVES = { Negocios: ['negocios', 'ID', 'CZ-', 4], Cotizaciones: ['cotizaciones', 'Folio', 'COT-CZ-', 4], Pagos: ['pagos', 'Recibo', 'REC-CZ-', 4], Gastos: ['gastos', 'ID', 'G-', 5], Documentos: ['documentos', 'ID', 'DOC-', 5] };
+/** API simulada del modo demostración: hace lo mismo que la real, pero en memoria. */
 function demoApi(accion, d) {
   if (!demoDB) { demoDB = demoSemilla(); demoArch = {}; }
   const db = demoDB, copia = () => JSON.parse(JSON.stringify(db));
@@ -1013,6 +1127,7 @@ function demoApi(accion, d) {
   if (accion === 'carpeta') r = { id: 'demo', url: '#' };
   if (accion === 'subirArchivo') { const id = 'arch-' + Date.now() + Math.random().toString(36).slice(2, 6); demoArch[id] = { nombre: d.nombre, mime: d.mime, base64: d.base64 }; r = guardarD('Documentos', { Fecha: hoyISO(), 'Negocio ID': d.negocioId, Nombre: d.nombre, Tipo: d.tipo, 'Archivo ID': id, Visible: d.visible === false ? 'No' : 'Sí' }); if (d.ref) { const o = {}; o[DEMO_CLAVES[d.ref.tabla][1]] = d.ref.id; o['Archivo ID'] = id; guardarD(d.ref.tabla, o); } }
   if (accion === 'archivo') { const f = demoArch[d.id]; return f ? Promise.resolve(f) : Promise.reject(new Error('En la demostración solo se abren los documentos creados en esta sesión')); }
+  if (accion === 'lote') return Promise.all(d.ops.map(o => demoApi(o.accion, o.datos))).then(rs => ({ resultado: rs.map(x => x.resultado), todo: copia() }));
   if (accion === 'enlacePortal') { const n = db.negocios.find(x => x.ID === d.negocioId); if (!n['Enlace portal']) { n['Código portal'] = 'DEMO' + n.ID.slice(-4); n['Enlace portal'] = 'https://cenzontle024-dot.github.io/panel/portal.html?demo=1'; } r = { codigo: n['Código portal'], enlace: n['Enlace portal'] }; }
   return Promise.resolve({ resultado: JSON.parse(JSON.stringify(r)), todo: copia() });
 }

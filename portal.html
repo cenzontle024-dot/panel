@@ -1,4 +1,15 @@
 <!doctype html>
+<!--
+  PORTAL DEL CLIENTE (Cenzontle)
+  ------------------------------------------------------------------
+  Página que ve el cliente con su enlace: portal.html?c=CODIGO (8 caracteres).
+  Pide a la API, sin contraseña, solo la información de ese negocio (accion=portal):
+  su proyecto y etapas, estado de cuenta, pagos, documentos visibles y datos para pagar.
+  También permite avisar un pago (portalReportarPago) y descargar documentos (portalArchivo).
+  Con ?demo=1 muestra datos de ejemplo sin conectarse.
+  Funciones: api() conexión · calcular() saldos y mensualidades · pintar() pantalla ·
+             descargar() documentos · formPago() aviso de pago · demo() datos de ejemplo.
+-->
 <html lang="es">
 <head>
 <meta charset="utf-8">
